@@ -8,7 +8,6 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
-    <!-- NuGet package metadata -->
     <PackageId>BasisBlockEncoder</PackageId>
     <Version>0.1.0</Version>
     <Authors>BasisBlockEncoder contributors</Authors>
@@ -17,17 +16,12 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryType>git</RepositoryType>
-    <!-- TODO: set to your repository URL before publishing. -->
-    <RepositoryUrl>https://github.com/your-org/basis-block-encoder</RepositoryUrl>
-    <PackageProjectUrl>https://github.com/your-org/basis-block-encoder</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/nolife99/basis-block-encoder</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/nolife99/basis-block-encoder</PackageProjectUrl>
 
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
 
-    <!--
-      CI stages built native libraries into <repo>/runtimes/<rid>/native/ before `dotnet pack`.
-      Packing them under runtimes/ lets .NET auto-resolve the right native per consumer RID.
-    -->
     <NativeRuntimesDir>$(MSBuildProjectDirectory)/../../runtimes/</NativeRuntimesDir>
   </PropertyGroup>
 
