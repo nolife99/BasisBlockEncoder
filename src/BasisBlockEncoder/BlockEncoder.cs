@@ -28,8 +28,7 @@ public static class BlockEncoder
     private static int s_initialized; // 0 = no, 1 = yes
 
     /// <summary>
-    /// Initializes the native encoder tables. Idempotent and thread-safe. Optional: encode calls
-    /// initialize on first use.
+    /// Initializes the native encoder tables. Idempotent and thread-safe.
     /// </summary>
     /// <exception cref="BasisEncoderException">If native initialization fails.</exception>
     public static void Initialize()
@@ -85,8 +84,8 @@ public static class BlockEncoder
     /// <param name="channel0">BC4/BC5 source channel 0 (default 0 = R when negative).</param>
     /// <param name="channel1">BC5 source channel 1 (default 1 = G when negative).</param>
     public static unsafe void Encode(
-        BcFormat format, ReadOnlySpan<byte> srcRgba, int width, int height, int strideBytes,
-        Span<byte> dst, uint flags = 0, int channel0 = -1, int channel1 = -1)
+        BcFormat format, scoped ReadOnlySpan<byte> srcRgba, int width, int height, int strideBytes,
+        scoped Span<byte> dst, uint flags = 0, int channel0 = -1, int channel1 = -1)
     {
         if (format == BcFormat.Bc6h)
             throw new ArgumentException("Use EncodeBc6h for BC6H (FP16 input).", nameof(format));
@@ -104,28 +103,28 @@ public static class BlockEncoder
     }
 
     /// <summary>Encodes a whole RGBA8 surface to BC7.</summary>
-    public static void EncodeBc7(ReadOnlySpan<byte> srcRgba, int width, int height, int strideBytes,
-                                 Span<byte> dst, Bc7Flags flags = Bc7Flags.Default) =>
+    public static void EncodeBc7(scoped ReadOnlySpan<byte> srcRgba, int width, int height, int strideBytes,
+        scoped Span<byte> dst, Bc7Flags flags = Bc7Flags.Default) =>
         Encode(BcFormat.Bc7, srcRgba, width, height, strideBytes, dst, (uint)flags);
 
     /// <summary>Encodes a whole RGBA8 surface to BC1 (color only; alpha is ignored).</summary>
-    public static void EncodeBc1(ReadOnlySpan<byte> srcRgba, int width, int height, int strideBytes,
-                                 Span<byte> dst, Bc1Quality quality = Bc1Quality.HighQuality) =>
+    public static void EncodeBc1(scoped ReadOnlySpan<byte> srcRgba, int width, int height, int strideBytes,
+        scoped Span<byte> dst, Bc1Quality quality = Bc1Quality.HighQuality) =>
         Encode(BcFormat.Bc1, srcRgba, width, height, strideBytes, dst, (uint)quality);
 
     /// <summary>Encodes a whole RGBA8 surface to BC3 (BC4 alpha + BC1 color).</summary>
-    public static void EncodeBc3(ReadOnlySpan<byte> srcRgba, int width, int height, int strideBytes,
-                                 Span<byte> dst, Bc1Quality quality = Bc1Quality.HighQuality) =>
+    public static void EncodeBc3(scoped ReadOnlySpan<byte> srcRgba, int width, int height, int strideBytes,
+        scoped Span<byte> dst, Bc1Quality quality = Bc1Quality.HighQuality) =>
         Encode(BcFormat.Bc3, srcRgba, width, height, strideBytes, dst, (uint)quality);
 
     /// <summary>Encodes a single channel of a whole RGBA8 surface to BC4.</summary>
-    public static void EncodeBc4(ReadOnlySpan<byte> srcRgba, int width, int height, int strideBytes,
-                                 Span<byte> dst, int channel = 0) =>
+    public static void EncodeBc4(scoped ReadOnlySpan<byte> srcRgba, int width, int height, int strideBytes,
+        scoped Span<byte> dst, int channel = 0) =>
         Encode(BcFormat.Bc4, srcRgba, width, height, strideBytes, dst, 0, channel, -1);
 
     /// <summary>Encodes two channels of a whole RGBA8 surface to BC5 (red+green by default).</summary>
-    public static void EncodeBc5(ReadOnlySpan<byte> srcRgba, int width, int height, int strideBytes,
-                                 Span<byte> dst, int channel0 = 0, int channel1 = 1) =>
+    public static void EncodeBc5(scoped ReadOnlySpan<byte> srcRgba, int width, int height, int strideBytes,
+        scoped Span<byte> dst, int channel0 = 0, int channel1 = 1) =>
         Encode(BcFormat.Bc5, srcRgba, width, height, strideBytes, dst, 0, channel0, channel1);
 
     // -------------------------------------------------------------------------------------------
@@ -139,8 +138,8 @@ public static class BlockEncoder
     /// that tracks the destination offset for you.
     /// </summary>
     public static unsafe void EncodeRows(
-        BcFormat format, ReadOnlySpan<byte> srcRgba, int width, int pixelRows, int strideBytes,
-        Span<byte> dst, uint flags = 0, int channel0 = -1, int channel1 = -1)
+        BcFormat format, scoped ReadOnlySpan<byte> srcRgba, int width, int pixelRows, int strideBytes,
+        scoped Span<byte> dst, uint flags = 0, int channel0 = -1, int channel1 = -1)
     {
         if (format == BcFormat.Bc6h)
             throw new ArgumentException("Use EncodeBc6hRows for BC6H (FP16 input).", nameof(format));
@@ -166,7 +165,7 @@ public static class BlockEncoder
     /// (64 bytes) in raster order; <paramref name="dst"/> receives <see cref="BlockBytes"/> bytes.
     /// </summary>
     public static unsafe void EncodeBlock(
-        BcFormat format, ReadOnlySpan<byte> block16Rgba, Span<byte> dst,
+        BcFormat format, scoped ReadOnlySpan<byte> block16Rgba, scoped Span<byte> dst,
         uint flags = 0, int channel0 = -1, int channel1 = -1)
     {
         if (format == BcFormat.Bc6h)
@@ -199,8 +198,8 @@ public static class BlockEncoder
     /// <param name="srcRgbHalf">Source pixels: <c>width*height*3</c> FP16 values.</param>
     /// <param name="strideBytes">Bytes between rows (>= <paramref name="width"/>*6).</param>
     public static unsafe void EncodeBc6h(
-        ReadOnlySpan<ushort> srcRgbHalf, int width, int height, int strideBytes,
-        Span<byte> dst, Bc6hQuality quality = Bc6hQuality.Default)
+        scoped ReadOnlySpan<ushort> srcRgbHalf, int width, int height, int strideBytes,
+        scoped Span<byte> dst, Bc6hQuality quality = Bc6hQuality.Default)
     {
         ValidateBc6h(srcRgbHalf, width, height, strideBytes, dst);
         EnsureInitialized();
@@ -219,14 +218,14 @@ public static class BlockEncoder
     /// reinterprets the <see cref="Half"/> span as raw FP16 bits.
     /// </summary>
     public static void EncodeBc6h(
-        ReadOnlySpan<Half> srcRgbHalf, int width, int height, int strideBytes,
-        Span<byte> dst, Bc6hQuality quality = Bc6hQuality.Default) =>
+        scoped ReadOnlySpan<Half> srcRgbHalf, int width, int height, int strideBytes,
+        scoped Span<byte> dst, Bc6hQuality quality = Bc6hQuality.Default) =>
         EncodeBc6h(MemoryMarshal.Cast<Half, ushort>(srcRgbHalf), width, height, strideBytes, dst, quality);
 
     /// <summary>Streaming band variant of <see cref="EncodeBc6h(ReadOnlySpan{ushort},int,int,int,Span{byte},Bc6hQuality)"/>.</summary>
     public static unsafe void EncodeBc6hRows(
-        ReadOnlySpan<ushort> srcRgbHalf, int width, int pixelRows, int strideBytes,
-        Span<byte> dst, Bc6hQuality quality = Bc6hQuality.Default)
+        scoped ReadOnlySpan<ushort> srcRgbHalf, int width, int pixelRows, int strideBytes,
+        scoped Span<byte> dst, Bc6hQuality quality = Bc6hQuality.Default)
     {
         ValidateBc6hRows(srcRgbHalf, width, pixelRows, strideBytes, dst);
         EnsureInitialized();
@@ -242,8 +241,8 @@ public static class BlockEncoder
 
     /// <summary>Streaming band variant accepting a <see cref="Half"/> span.</summary>
     public static void EncodeBc6hRows(
-        ReadOnlySpan<Half> srcRgbHalf, int width, int pixelRows, int strideBytes,
-        Span<byte> dst, Bc6hQuality quality = Bc6hQuality.Default) =>
+        scoped ReadOnlySpan<Half> srcRgbHalf, int width, int pixelRows, int strideBytes,
+        scoped Span<byte> dst, Bc6hQuality quality = Bc6hQuality.Default) =>
         EncodeBc6hRows(MemoryMarshal.Cast<Half, ushort>(srcRgbHalf), width, pixelRows, strideBytes, dst, quality);
 
     /// <summary>
@@ -251,7 +250,7 @@ public static class BlockEncoder
     /// (48 FP16 values) in raster order; <paramref name="dst"/> receives 16 bytes.
     /// </summary>
     public static unsafe void EncodeBc6hBlock(
-        ReadOnlySpan<ushort> block48RgbHalf, Span<byte> dst, Bc6hQuality quality = Bc6hQuality.Default)
+        scoped ReadOnlySpan<ushort> block48RgbHalf, scoped Span<byte> dst, Bc6hQuality quality = Bc6hQuality.Default)
     {
         if (block48RgbHalf.Length < 48)
             throw new ArgumentException("A 4x4 RGB FP16 block is 48 halfs.", nameof(block48RgbHalf));
@@ -270,15 +269,15 @@ public static class BlockEncoder
 
     /// <summary>Encodes a single 4x4 BC6H block from a <see cref="Half"/> span.</summary>
     public static void EncodeBc6hBlock(
-        ReadOnlySpan<Half> block48RgbHalf, Span<byte> dst, Bc6hQuality quality = Bc6hQuality.Default) =>
+        scoped ReadOnlySpan<Half> block48RgbHalf, scoped Span<byte> dst, Bc6hQuality quality = Bc6hQuality.Default) =>
         EncodeBc6hBlock(MemoryMarshal.Cast<Half, ushort>(block48RgbHalf), dst, quality);
 
     // -------------------------------------------------------------------------------------------
     // Validation helpers
     // -------------------------------------------------------------------------------------------
 
-    private static void ValidateLdr(BcFormat format, ReadOnlySpan<byte> src, int width, int height,
-                                    int strideBytes, Span<byte> dst)
+    private static void ValidateLdr(BcFormat format, scoped ReadOnlySpan<byte> src, int width, int height,
+                                    int strideBytes, scoped Span<byte> dst)
     {
         if (width <= 0 || height <= 0)
             throw new ArgumentOutOfRangeException(width <= 0 ? nameof(width) : nameof(height), "Dimensions must be positive.");
@@ -288,8 +287,8 @@ public static class BlockEncoder
         RequireDst(dst.Length, EncodedSize(format, width, height));
     }
 
-    private static void ValidateLdrRows(BcFormat format, ReadOnlySpan<byte> src, int width, int pixelRows,
-                                        int strideBytes, Span<byte> dst)
+    private static void ValidateLdrRows(BcFormat format, scoped ReadOnlySpan<byte> src, int width, int pixelRows,
+                                        int strideBytes, scoped Span<byte> dst)
     {
         if (width <= 0 || pixelRows <= 0)
             throw new ArgumentOutOfRangeException(width <= 0 ? nameof(width) : nameof(pixelRows), "Dimensions must be positive.");
@@ -299,7 +298,7 @@ public static class BlockEncoder
         RequireDst(dst.Length, EncodedSize(format, width, pixelRows));
     }
 
-    private static void ValidateBc6h(ReadOnlySpan<ushort> src, int width, int height, int strideBytes, Span<byte> dst)
+    private static void ValidateBc6h(scoped ReadOnlySpan<ushort> src, int width, int height, int strideBytes, scoped Span<byte> dst)
     {
         if (width <= 0 || height <= 0)
             throw new ArgumentOutOfRangeException(width <= 0 ? nameof(width) : nameof(height), "Dimensions must be positive.");
@@ -309,7 +308,7 @@ public static class BlockEncoder
         RequireDst(dst.Length, EncodedSize(BcFormat.Bc6h, width, height));
     }
 
-    private static void ValidateBc6hRows(ReadOnlySpan<ushort> src, int width, int pixelRows, int strideBytes, Span<byte> dst)
+    private static void ValidateBc6hRows(scoped ReadOnlySpan<ushort> src, int width, int pixelRows, int strideBytes, scoped Span<byte> dst)
     {
         if (width <= 0 || pixelRows <= 0)
             throw new ArgumentOutOfRangeException(width <= 0 ? nameof(width) : nameof(pixelRows), "Dimensions must be positive.");

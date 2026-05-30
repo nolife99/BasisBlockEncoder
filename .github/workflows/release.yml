@@ -33,12 +33,14 @@ jobs:
             lib: libbasis_block_encoder.so
             apt: g++-aarch64-linux-gnu
             toolchain: toolchain-linux-arm64.cmake
-          - os: macos-13
+          - os: macos-14
             rid: osx-x64
             lib: libbasis_block_encoder.dylib
+            osx_arch: x86_64
           - os: macos-14
             rid: osx-arm64
             lib: libbasis_block_encoder.dylib
+            osx_arch: arm64
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -53,6 +55,7 @@ jobs:
           args=(-S native -B native/build -DCMAKE_BUILD_TYPE=Release)
           [ -n "${{ matrix.platform }}" ] && args+=(-A "${{ matrix.platform }}")
           [ -n "${{ matrix.toolchain }}" ] && args+=(-DCMAKE_TOOLCHAIN_FILE="$PWD/native/cmake/${{ matrix.toolchain }}")
+          [ -n "${{ matrix.osx_arch }}" ] && args+=(-DCMAKE_OSX_ARCHITECTURES="${{ matrix.osx_arch }}" -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0)
           echo "cmake ${args[*]}"
           cmake "${args[@]}"
 

@@ -66,7 +66,7 @@ public sealed class BlockRowStreamWriter
     /// Encodes the next <paramref name="pixelRows"/> rows from <paramref name="bandRgba"/> (RGBA8,
     /// <paramref name="strideBytes"/> per row) into the destination.
     /// </summary>
-    public void WriteRows(ReadOnlySpan<byte> bandRgba, int pixelRows, int strideBytes)
+    public void WriteRows(scoped ReadOnlySpan<byte> bandRgba, int pixelRows, int strideBytes)
     {
         if (IsComplete)
             throw new InvalidOperationException("All rows have already been written.");
@@ -129,7 +129,7 @@ public sealed class Bc6hBlockRowStreamWriter
     public bool IsComplete => _pixelRowsDone >= _height;
 
     /// <summary>Encodes the next <paramref name="pixelRows"/> rows from an RGB FP16 band.</summary>
-    public void WriteRows(ReadOnlySpan<ushort> bandRgbHalf, int pixelRows, int strideBytes)
+    public void WriteRows(scoped ReadOnlySpan<ushort> bandRgbHalf, int pixelRows, int strideBytes)
     {
         if (IsComplete)
             throw new InvalidOperationException("All rows have already been written.");
@@ -149,6 +149,6 @@ public sealed class Bc6hBlockRowStreamWriter
     }
 
     /// <summary>Encodes the next band from a <see cref="Half"/> span.</summary>
-    public void WriteRows(ReadOnlySpan<Half> bandRgbHalf, int pixelRows, int strideBytes) =>
+    public void WriteRows(scoped ReadOnlySpan<Half> bandRgbHalf, int pixelRows, int strideBytes) =>
         WriteRows(System.Runtime.InteropServices.MemoryMarshal.Cast<Half, ushort>(bandRgbHalf), pixelRows, strideBytes);
 }
