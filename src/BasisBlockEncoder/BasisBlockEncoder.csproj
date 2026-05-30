@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!-- NuGet package metadata -->
+    <PackageId>BasisBlockEncoder</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>BasisBlockEncoder contributors</Authors>
+    <Description>Fast CPU block compressor for BC1/BC3/BC4/BC5/BC6H/BC7 GPU texture formats, backed by Binomial's basis_universal analytical real-time encoders (bc7f / encode_bc1 / fast_encode_bc6h). Safe span-based API, allocation-free, with single-block and streaming (banded) entry points. No ISPC toolchain and no GPU required.</Description>
+    <PackageTags>bc7;bc1;bc3;bc4;bc5;bc6h;texture;compression;dxt;gpu;basisu;basis-universal;astc;encoder</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryType>git</RepositoryType>
+    <!-- TODO: set to your repository URL before publishing. -->
+    <RepositoryUrl>https://github.com/your-org/basis-block-encoder</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/your-org/basis-block-encoder</PackageProjectUrl>
+
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+
+    <!--
+      CI stages built native libraries into <repo>/runtimes/<rid>/native/ before `dotnet pack`.
+      Packing them under runtimes/ lets .NET auto-resolve the right native per consumer RID.
+    -->
+    <NativeRuntimesDir>$(MSBuildProjectDirectory)/../../runtimes/</NativeRuntimesDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(MSBuildProjectDirectory)/../../README.md" Pack="true" PackagePath="" />
+    <None Include="$(NativeRuntimesDir)**/native/*"
+          Pack="true"
+          PackagePath="runtimes/"
+          Condition="Exists('$(NativeRuntimesDir)')" />
+  </ItemGroup>
+
+</Project>

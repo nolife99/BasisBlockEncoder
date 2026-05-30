@@ -1,0 +1,28 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+build/
+native/build/
+out/
+
+# Native runtimes are produced by CI before pack; don't commit them.
+runtimes/
+
+# NuGet output
+nupkg/
+*.nupkg
+*.snupkg
+
+# Fetched dependency (when using FetchContent without a separate build dir)
+_deps/
+
+# IDE / OS
+.vs/
+.vscode/
+*.user
+*.suo
+.DS_Store
+
+# Test results
+[Tt]est[Rr]esults/
+*.trx
