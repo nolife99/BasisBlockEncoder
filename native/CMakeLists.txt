@@ -98,18 +98,39 @@ endif()
 
 if(MSVC)
   # Release already supplies /O2 /DNDEBUG; /EHsc for the C++ runtime, and SSE2 on 32-bit x86.
-  target_compile_options(basis_block_encoder PRIVATE /O2 /EHsc)
+  # /Gy + /Gw place each function/global in its own COMDAT so the linker can drop unused ones.
+  target_compile_options(basis_block_encoder PRIVATE /O2 /EHsc /Gy /Gw)
   target_compile_definitions(basis_block_encoder PRIVATE _CRT_SECURE_NO_WARNINGS)
   if(CMAKE_SIZEOF_VOID_P EQUAL 4)
     target_compile_options(basis_block_encoder PRIVATE /arch:SSE2)
   endif()
+  # Remove unreferenced code and fold identical COMDATs. Debug info lives in a separate PDB, so
+  # the shipped DLL stays lean without a strip step. Size only - the /O2 codegen is unchanged.
+  target_link_options(basis_block_encoder PRIVATE /OPT:REF /OPT:ICF)
 else()
   target_compile_options(basis_block_encoder PRIVATE -O3)
+  # Put each function/datum in its own section so the linker can garbage-collect everything we
+  # never call (we use a handful of encoders out of the whole transcoder TU). This is a pure
+  # size optimization: it has no effect on the speed of the code that survives, and it composes
+  # with -O3, LTO, and -DNDEBUG below.
+  target_compile_options(basis_block_encoder PRIVATE -ffunction-sections -fdata-sections)
   if(BBE_IS_X86_32)
     target_compile_options(basis_block_encoder PRIVATE -msse2 -mfpmath=sse)
   endif()
   if(BBE_NATIVE_ARCH)
     target_compile_options(basis_block_encoder PRIVATE -march=native)
+  endif()
+  if(APPLE)
+    # ld64: dead-strip unreferenced atoms always; strip local symbols in optimized builds
+    # (the exported bbe_* globals are kept).
+    target_link_options(basis_block_encoder PRIVATE LINKER:-dead_strip)
+    target_link_options(basis_block_encoder PRIVATE $<$<CONFIG:Release>:LINKER:-x>)
+  else()
+    # GNU ld: collect unused sections, hide third-party static symbols, and strip in Release.
+    # -s removes .symtab/debug but preserves .dynsym, so the exported bbe_* API stays intact.
+    target_link_options(basis_block_encoder PRIVATE LINKER:--gc-sections)
+    target_link_options(basis_block_encoder PRIVATE LINKER:--exclude-libs,ALL)
+    target_link_options(basis_block_encoder PRIVATE $<$<CONFIG:Release>:-s>)
   endif()
 endif()
 
