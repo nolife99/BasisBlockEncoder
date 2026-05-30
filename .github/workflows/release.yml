@@ -20,6 +20,10 @@ jobs:
             rid: win-x86
             lib: basis_block_encoder.dll
             platform: Win32
+          - os: windows-11-arm
+            rid: win-arm64
+            lib: basis_block_encoder.dll
+            platform: ARM64
           - os: ubuntu-latest
             rid: linux-x64
             lib: libbasis_block_encoder.so
