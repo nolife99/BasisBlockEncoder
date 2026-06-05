@@ -1,13 +1,6 @@
-// Bc1SimdTest.cs — verifies the BC1 selector-search SIMD tiers are bit-identical to the scalar tier:
-// the V128 and V256 tiers must produce the same selectors and the same returned error with the early-out
-// disabled (full 16-pixel sum). With a tight cap the scalar and V128 paths group pixels by 4 and bail at
-// the same point, so they stay identical; V256 groups by 8, so its early-out can land later and return a
-// larger partial error on a *rejected* trial. That difference is discarded by the caller (a rejected trial
-// never updates the output), so V256 is checked only on the committed (no-early-out) path here, and the
-// end-to-end golden snapshot confirms the encoded output is unchanged.
+// Verifies the BC1 selector-search SIMD tiers are bit-identical to the scalar tier
 using System;
 using System.Runtime.Intrinsics;
-using Bcn;
 
 namespace Bcn.Ldr;
 

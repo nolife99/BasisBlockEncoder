@@ -9,7 +9,6 @@
 // becomes a mask/blend rather than a branch.
 using System;
 using System.Numerics;
-using System.Runtime.CompilerServices;
 
 namespace Bcn.Hdr;
 

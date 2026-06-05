@@ -1,5 +1,4 @@
-// Bc7Tables.cs — BC7 lookup tables (verbatim from Basis Universal, Apache-2.0).
-// Pure data shared by the multi-subset modes (1/2/3/7).
+// Bc7Tables.cs — BC7 lookup tables (verbatim from Basis Universal, Apache-2.0)
 
 using System;
 using System.Runtime.Intrinsics;

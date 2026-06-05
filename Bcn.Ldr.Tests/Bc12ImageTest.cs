@@ -1,7 +1,6 @@
-// Bc12ImageTest.cs — verifies the standalone BC1 / BC2 encoders and the whole-image driver
+// Verifies the standalone BC1 / BC2 encoders and the whole-image driver
 // (block counting, clamp-to-edge padding on non-4-aligned images, round-trip).
 using System;
-using Bcn;
 
 namespace Bcn.Ldr;
 
@@ -129,7 +128,7 @@ internal static class Bc12ImageTest
                 BlockImage.Encode(e, im, w, h, st, got);                  // batch path on AVX2
                 byte[] exp = new byte[nb * bpb];                          // per-block reference
                 int ww = (w + 3) / 4, hh = (h + 3) / 4, bb = 0;
-                Span<ColorRgba> tl = stackalloc ColorRgba[16];
+                Span<ColorRgba> tl = stackalloc ColorRgba[16];            // hahahahahaha
                 for (int by = 0; by < hh; by++)
                     for (int bx = 0; bx < ww; bx++, bb++)
                     {

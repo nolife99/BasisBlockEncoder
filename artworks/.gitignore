@@ -1,4 +1,0 @@
-# Don't commit large binary artwork; keep the folder + instructions.
-*
-!.gitignore
-!PUT-ARTWORKS-HERE.txt

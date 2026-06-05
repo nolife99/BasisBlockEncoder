@@ -1,8 +1,3 @@
-// Bc3Encoder.cs — public BC3 / DXT5 block encoder (namespace Bcn.Ldr).
-//
-// BC3 = optimal BC4 alpha block (bytes 0..7, channel A) + BC1 4-color color block (bytes 8..15).
-// The alpha half is byte-identical to native and provably optimal; the color half is the BC1 4-color
-// encoder (3-color forbidden, so always GPU-safe). Color quality is selectable.
 using System;
 
 namespace Bcn.Ldr;

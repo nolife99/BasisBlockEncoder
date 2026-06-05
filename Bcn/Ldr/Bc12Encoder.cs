@@ -1,8 +1,3 @@
-// Bc12Encoder.cs — public BC1 (color only) and BC2 (explicit 4-bit alpha + BC1 color) encoders.
-//
-// BC1 is the standalone 4-color color format (8 bytes). BC2/DXT3 pairs a BC1 color block with 16
-// explicit 4-bit alpha values (no interpolation) — used when alpha has hard edges that BC3's
-// interpolated alpha would smear. Both reuse the shared Bc1Block 4-color core (never 3-color).
 using System;
 
 namespace Bcn.Ldr;

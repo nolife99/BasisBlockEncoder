@@ -83,7 +83,7 @@ internal static partial class Bc1Block
                 {
                     int hiE = size == 32 ? Scale5To8(hi) : Scale6To8(hi);
                     int v = (hiE * 2 + loE) / 3;                      // ideal interp_5_6 of selector 2
-                    int e = Math.Abs(v - i) + (Math.Abs(hiE - loE) * 3) / 100; // 3% GPU-approx term (ideal mode)
+                    int e = Math.Abs(v - i) + Math.Abs(hiE - loE) * 3 / 100; // 3% GPU-approx term (ideal mode)
                     if (e < lowestE || (e == lowestE && lo == hi))    // favor equal endpoints
                     {
                         hiT[i] = (byte)hi; loT[i] = (byte)lo; lowestE = e;
@@ -441,7 +441,7 @@ internal static partial class Bc1Block
         for (int g = 0; g < 16; g += 4)
         {
             Load4(ref pru, g, mask8, out var R, out var G, out var B);
-            Vector128<int> sel = Vector128.Create((int)sels[g], (int)sels[g + 1], (int)sels[g + 2], (int)sels[g + 3]);
+            Vector128<int> sel = Vector128.Create(sels[g], sels[g + 1], sels[g + 2], sels[g + 3]);
             accR += sel * R; accG += sel * G; accB += sel * B;
             accW += Vector128.Shuffle(wtab, sel); // WeightVals4[sel] per lane; packed fields don't overflow over 16 px
         }
@@ -458,7 +458,7 @@ internal static partial class Bc1Block
         float z00 = (weightAccum >> 16) & 0xFF, z10 = (weightAccum >> 8) & 0xFF, z11 = weightAccum & 0xFF, z01 = z10;
         float det = z00 * z11 - z01 * z10;
         if (MathF.Abs(det) < 1e-8f) return false;
-        det = (3.0f / 255.0f) / det;
+        det = 3.0f / 255.0f / det;
         float iz00 = z11 * det, iz01 = -z01 * det, iz10 = -z10 * det, iz11 = z00 * det;
         xl[0] = MulAdd(iz00, uq00R, iz01 * q10R); xh[0] = MulAdd(iz10, uq00R, iz11 * q10R);
         xl[1] = MulAdd(iz00, uq00G, iz01 * q10G); xh[1] = MulAdd(iz10, uq00G, iz11 * q10G);

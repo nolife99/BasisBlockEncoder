@@ -1,6 +1,4 @@
-// Bc45Test.cs — in-sandbox verification for BC4/BC5 (no native dep needed).
 using System;
-using Bcn;
 
 namespace Bcn.Ldr;
 

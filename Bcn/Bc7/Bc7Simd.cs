@@ -1,8 +1,8 @@
 // Bc7Simd.cs — portable, lane-widened helpers for the per-block hot paths, replacing scalar loops in the
 // analytical brains. All are INTEGER, so every tier is bit-identical to the scalar fallback (reduction
 // order is irrelevant for sum/min/max). Tier dispatch uses Vector*.IsHardwareAccelerated, which the JIT
-// treats as a compile-time constant and folds — the unused tiers are eliminated, so the branches cost
-// nothing at runtime. Each tier is also exposed internally so that any tier can be exercised on a single
+// treats as a compile-time constant and folds. The unused tiers are eliminated, so the branches cost
+// nothing. Each tier is also exposed internally so that any tier can be exercised on a single
 // machine, not only the one the JIT selects for the current CPU.
 using System;
 using System.Runtime.InteropServices;
@@ -800,7 +800,7 @@ internal static partial class Bc7Block
             Vector256<int> s0 = Avx.ConvertToVector256Int32WithTruncation(Fma.MultiplyAdd(Vector256.ConvertToSingle(R * dr0 + G * dg0 + B * db0 - so0), f0, half));
             Vector256<int> s1 = Avx.ConvertToVector256Int32WithTruncation(Fma.MultiplyAdd(Vector256.ConvertToSingle(R * dr1 + G * dg1 + B * db1 - so1), f1, half));
             Vector256<int> s2 = Avx.ConvertToVector256Int32WithTruncation(Fma.MultiplyAdd(Vector256.ConvertToSingle(R * dr2 + G * dg2 + B * db2 - so2), f2, half));
-            Vector256<int> idx = Vector256.Create((int)Unsafe.Add(ref pt, o), (int)Unsafe.Add(ref pt, o + 1), (int)Unsafe.Add(ref pt, o + 2), (int)Unsafe.Add(ref pt, o + 3), (int)Unsafe.Add(ref pt, o + 4), (int)Unsafe.Add(ref pt, o + 5), (int)Unsafe.Add(ref pt, o + 6), (int)Unsafe.Add(ref pt, o + 7));
+            Vector256<int> idx = Vector256.Create(Unsafe.Add(ref pt, o), Unsafe.Add(ref pt, o + 1), Unsafe.Add(ref pt, o + 2), Unsafe.Add(ref pt, o + 3), Unsafe.Add(ref pt, o + 4), Unsafe.Add(ref pt, o + 5), Unsafe.Add(ref pt, o + 6), Unsafe.Add(ref pt, o + 7));
             Vector256<int> sel = Vector256.ConditionalSelect(Vector256.Equals(idx, two), s2, Vector256.ConditionalSelect(Vector256.Equals(idx, one), s1, s0));
             sel = Vector256.Min(Vector256.Max(sel, zero), mxv);
             sel.StoreUnsafe(ref wr, o);
@@ -821,7 +821,7 @@ internal static partial class Bc7Block
             Vector128<int> s0 = AdvSimd.ConvertToInt32RoundToZero(AdvSimd.FusedMultiplyAdd(half, Vector128.ConvertToSingle(R * dr0 + G * dg0 + B * db0 - so0), f0));
             Vector128<int> s1 = AdvSimd.ConvertToInt32RoundToZero(AdvSimd.FusedMultiplyAdd(half, Vector128.ConvertToSingle(R * dr1 + G * dg1 + B * db1 - so1), f1));
             Vector128<int> s2 = AdvSimd.ConvertToInt32RoundToZero(AdvSimd.FusedMultiplyAdd(half, Vector128.ConvertToSingle(R * dr2 + G * dg2 + B * db2 - so2), f2));
-            Vector128<int> idx = Vector128.Create((int)Unsafe.Add(ref pt, o), (int)Unsafe.Add(ref pt, o + 1), (int)Unsafe.Add(ref pt, o + 2), (int)Unsafe.Add(ref pt, o + 3));
+            Vector128<int> idx = Vector128.Create(Unsafe.Add(ref pt, o), Unsafe.Add(ref pt, o + 1), Unsafe.Add(ref pt, o + 2), Unsafe.Add(ref pt, o + 3));
             Vector128<int> sel = Vector128.ConditionalSelect(Vector128.Equals(idx, two), s2, Vector128.ConditionalSelect(Vector128.Equals(idx, one), s1, s0));
             sel = Vector128.Min(Vector128.Max(sel, zero), mxv);
             sel.StoreUnsafe(ref wr, o);
@@ -1141,7 +1141,7 @@ internal static partial class Bc7Block
         Vector512<int> s0 = Avx512F.ConvertToVector512Int32WithTruncation(Avx512F.FusedMultiplyAdd(Vector512.ConvertToSingle(R * dr0 + G * dg0 + B * db0 - so0), f0, half));
         Vector512<int> s1 = Avx512F.ConvertToVector512Int32WithTruncation(Avx512F.FusedMultiplyAdd(Vector512.ConvertToSingle(R * dr1 + G * dg1 + B * db1 - so1), f1, half));
         Vector512<int> s2 = Avx512F.ConvertToVector512Int32WithTruncation(Avx512F.FusedMultiplyAdd(Vector512.ConvertToSingle(R * dr2 + G * dg2 + B * db2 - so2), f2, half));
-        Vector512<int> idx = Vector512.Create((int)Unsafe.Add(ref pt, 0), (int)Unsafe.Add(ref pt, 1), (int)Unsafe.Add(ref pt, 2), (int)Unsafe.Add(ref pt, 3), (int)Unsafe.Add(ref pt, 4), (int)Unsafe.Add(ref pt, 5), (int)Unsafe.Add(ref pt, 6), (int)Unsafe.Add(ref pt, 7), (int)Unsafe.Add(ref pt, 8), (int)Unsafe.Add(ref pt, 9), (int)Unsafe.Add(ref pt, 10), (int)Unsafe.Add(ref pt, 11), (int)Unsafe.Add(ref pt, 12), (int)Unsafe.Add(ref pt, 13), (int)Unsafe.Add(ref pt, 14), (int)Unsafe.Add(ref pt, 15));
+        Vector512<int> idx = Vector512.Create(Unsafe.Add(ref pt, 0), Unsafe.Add(ref pt, 1), Unsafe.Add(ref pt, 2), Unsafe.Add(ref pt, 3), Unsafe.Add(ref pt, 4), Unsafe.Add(ref pt, 5), Unsafe.Add(ref pt, 6), Unsafe.Add(ref pt, 7), Unsafe.Add(ref pt, 8), Unsafe.Add(ref pt, 9), Unsafe.Add(ref pt, 10), Unsafe.Add(ref pt, 11), Unsafe.Add(ref pt, 12), Unsafe.Add(ref pt, 13), Unsafe.Add(ref pt, 14), Unsafe.Add(ref pt, 15));
         Vector512<int> sel = Vector512.ConditionalSelect(Vector512.Equals(idx, two), s2, Vector512.ConditionalSelect(Vector512.Equals(idx, one), s1, s0));
         sel = Vector512.Min(Vector512.Max(sel, Vector512<int>.Zero), Vector512.Create(mx));
         sel.StoreUnsafe(ref wr, 0);

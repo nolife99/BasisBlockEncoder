@@ -1,9 +1,9 @@
-// Golden.cs — cross-platform byte-identity gate for the MANAGED encoder.
+// Cross-platform byte-identity gate for the MANAGED encoder.
 //
 // The managed encoder is deterministic and every SIMD tier (scalar / V128 / V256 / V512, x86 + ARM NEON) is
 // meant to emit identical bytes. This encodes a fixed, architecture-independent corpus with every format's
 // managed encoder and records a SHA-256 per case. Running it on x64 and on arm64 must produce identical
-// digests — that is the only way to validate the ARM/NEON paths without the native reference (which is x64-
+// digests that is the only way to validate the ARM/NEON paths without the native reference (which is x64-
 // only for some platforms). The corpus is restricted to gate-safe inputs: integer/LCG-generated synthetic
 // surfaces and integer-decoded artworks (no transcendental functions in the *input*, so the pixels are
 // bit-for-bit identical on every platform). The SkySun synthetic (Exp/Sqrt) is excluded.
@@ -12,12 +12,7 @@
 //   dotnet run -c Release -- golden-check golden.bin     # re-encode and assert reproduction of golden.bin
 //
 // In CI both architectures write their file in parallel and a final job asserts the two files are identical.
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Security.Cryptography;
-using Bcn;            // BlockImage
-using Bcn.Ldr;        // Bc1Quality
 using MHdr = Bcn.Hdr; // Bc6hImage, Bc6hQuality
 
 namespace Bcn.Bench;
@@ -35,9 +30,9 @@ internal static class Golden
         var dst = new byte[(long)im.Blocks * Bpb(fmt)];
         switch (fmt)
         {
-            case "Bc1": BlockImage.EncodeBc1(im.Rgba, im.W, im.H, im.StrideBytes, dst, Bc1Quality.HighQuality); break;
+            case "Bc1": BlockImage.EncodeBc1(im.Rgba, im.W, im.H, im.StrideBytes, dst, Ldr.Bc1Quality.HighQuality); break;
             case "Bc2": BlockImage.EncodeBc2(im.Rgba, im.W, im.H, im.StrideBytes, dst); break;
-            case "Bc3": BlockImage.EncodeBc3(im.Rgba, im.W, im.H, im.StrideBytes, dst, Bc1Quality.HighQuality); break;
+            case "Bc3": BlockImage.EncodeBc3(im.Rgba, im.W, im.H, im.StrideBytes, dst, Ldr.Bc1Quality.HighQuality); break;
             case "Bc4": BlockImage.EncodeBc4(im.Rgba, im.W, im.H, im.StrideBytes, dst, 0); break;
             case "Bc5": BlockImage.EncodeBc5(im.Rgba, im.W, im.H, im.StrideBytes, dst, 0, 1); break;
             case "Bc7": BlockImage.EncodeBc7(im.Rgba, im.W, im.H, im.StrideBytes, dst, Bc7Flags.Default); break;

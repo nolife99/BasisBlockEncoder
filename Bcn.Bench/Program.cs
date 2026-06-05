@@ -1,4 +1,4 @@
-// Program.cs — entry point for the encoder benchmark / verification tool.
+// Entry point for the encoder benchmark / verification tool.
 //
 //   dotnet run -c Release                         run the full BenchmarkDotNet timing suite (all formats)
 //   dotnet run -c Release -- bench [BDN args]     same, forwarding BenchmarkDotNet CLI args (--filter, --job short, ...)
@@ -9,7 +9,6 @@
 // Artworks: drop image files into ../artworks (.png/.jpg/... for LDR; .hdr for BC6H). With none, procedural
 // textures stand in. Override the folder with the BCN_BENCH_ARTWORKS environment variable. Each image is
 // encoded whole, at its native resolution (cropped only to a multiple of 4) — there is no size parameter.
-using System;
 using BenchmarkDotNet.Running;
 using Bcn.Bench;
 

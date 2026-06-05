@@ -1,9 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- Ships net8.0 (the original package's TFM) and net10.0. Sandbox packs net10.0 only
-         because that is the only targeting pack available offline. -->
-    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks>net7.0;net8.0;net9.0;net10.0</TargetFrameworks>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
     <Optimize>true</Optimize>
@@ -11,10 +9,7 @@
     <AssemblyName>BasisBlockEncoder</AssemblyName>
     <RootNamespace>BasisBlockEncoder</RootNamespace>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <!-- Engine sources are compiled in and not all carry XML docs; don't fail the build over CS1591. -->
     <NoWarn>$(NoWarn);CS1591;CS0649;CA2014</NoWarn>
-
-    <!-- NuGet package metadata: a managed drop-in for the native-backed BasisBlockEncoder. -->
     <PackageId>BasisBlockEncoder</PackageId>
     <Version>0.2.1</Version>
     <Authors>BasisBlockEncoder contributors</Authors>
@@ -25,9 +20,10 @@
     <IncludeSymbols>false</IncludeSymbols>
   </PropertyGroup>
 
-  <!-- Compile the managed engine sources straight into this assembly: a single self-contained
-       BasisBlockEncoder.dll with no native runtime and no external package dependency. This is a
-       <Compile Include>, NOT a ProjectReference, precisely so the engine is bundled, not referenced. -->
+  <!-- Compile the engine sources straight into this assembly so BasisBlockEncoder.dll is a single,
+       self-contained DLL (engine + drop-in API) with no native runtime and no package dependency. These are
+       the same sources the Bcn project builds; this is a <Compile Include>, NOT a ProjectReference, so the
+       engine is bundled, not referenced. -->
   <ItemGroup>
     <Compile Include="..\Bcn\**\*.cs" Exclude="..\Bcn\bin\**\*.cs;..\Bcn\obj\**\*.cs" />
   </ItemGroup>

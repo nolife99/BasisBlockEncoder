@@ -1,10 +1,8 @@
 // Bc7Decoder.cs — internal, zero-allocation BC7 block decoder + actual-SSE helper. Used only by the
-// partially-analytical (HighQuality) path to compute true reconstruction error for mode selection.
-// All scratch is stackalloc; no per-call heap allocation. namespace Bcn.Bc7.
+// partially-analytical (HighQuality) path to compute true reconstruction error for mode selection
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Bcn;
 
 namespace Bcn.Bc7;
 

@@ -60,7 +60,7 @@ internal static partial class Bc1Block
                             tab[idx.GetElement(4)], tab[idx.GetElement(5)], tab[idx.GetElement(6)], tab[idx.GetElement(7)]);
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector256<int> GatherB(byte[] tab, Vector256<int> idx)
-        => Vector256.Create((int)tab[idx.GetElement(0)], tab[idx.GetElement(1)], tab[idx.GetElement(2)], tab[idx.GetElement(3)],
+        => Vector256.Create(tab[idx.GetElement(0)], tab[idx.GetElement(1)], tab[idx.GetElement(2)], tab[idx.GetElement(3)],
                             tab[idx.GetElement(4)], tab[idx.GetElement(5)], tab[idx.GetElement(6)], tab[idx.GetElement(7)]);
 
     // Transpose 8 block-contiguous blocks (px8[b*16 + i]) into pixel-major packed uints (tU[i*8 + b]).

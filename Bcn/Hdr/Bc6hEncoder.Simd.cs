@@ -1,7 +1,5 @@
-// BC6H encoder SIMD kernels, written against the width-agnostic System.Numerics.Vector<T> so a single
-// implementation lowers to the host vector width (128/256/512-bit) under the JIT. The 16-texel block is
-// divisible by every supported width, so each width tiles it exactly. There are no unsafe blocks and no
-// width-specific intrinsics, for portability across x86 and ARM.
+// BC6H encoder SIMD kernels. The 16-texel block is divisible by every supported width, so each 
+// width tiles it exactly. There are no width-specific intrinsics, for portability across x86 and ARM.
 //
 // The lane-parallel weight-assignment kernels (single- and two-subset) and the candidate-color generation
 // are bit-identical to the scalar path: they use the same FMA form and accumulate the error in scalar order.
@@ -11,7 +9,6 @@ using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
 
 namespace Bcn.Hdr;
 
@@ -20,14 +17,9 @@ internal static partial class Bc6hEncoder
     private static readonly int[] Weight4I = { 0, 4, 9, 13, 17, 21, 26, 30, 34, 38, 43, 47, 51, 55, 60, 64 };
     private static readonly int[] Weight3I = { 0, 9, 18, 27, 37, 46, 55, 64 };
 
-    // SIMD is used when the hardware is vector-accelerated and the width divides the 16-texel block. The
-    // width comparison is a compile-time constant the JIT folds away.
     private static bool UseSimdWeights => Vector.IsHardwareAccelerated && (16 % Vector<float>.Count) == 0;
     private static bool UseSimdGeometry => Vector.IsHardwareAccelerated && (16 % Vector<float>.Count) == 0;
 
-    // Portable variable-width load/store from a ref + element offset. Equivalent to Vector<T>.LoadUnsafe /
-    // StoreUnsafe (added in .NET 8) but using the span constructor and CopyTo, which are available on every
-    // targeted framework. The span is created with exactly Vector<T>.Count elements.
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector<T> LoadVec<T>(ref T baseRef, nuint offset) where T : struct
         => new Vector<T>(MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref baseRef, (nint)offset), Vector<T>.Count));
@@ -36,12 +28,11 @@ internal static partial class Bc6hEncoder
     private static void StoreVec<T>(Vector<T> value, ref T baseRef, nuint offset) where T : struct
         => value.CopyTo(MemoryMarshal.CreateSpan(ref Unsafe.Add(ref baseRef, (nint)offset), Vector<T>.Count));
 
-    // half-bits to positive-finite float: (h << 13) reinterpreted, scaled by 2^112. Bit-identical to HtoF.
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    // half-bits to positive-finite float: (h << 13) reinterpreted, scaled by 2^112
     private static Vector<float> HtoFVec(Vector<int> hbits)
         => Vector.AsVectorSingle(Vector.ShiftLeft(hbits, 13)) * new Vector<float>(HtoFK);
 
-    // 16 candidate colors interpolated between the (min,max) endpoints. Bit-identical to scalar.
+    // 16 candidate colors interpolated between the (min,max) endpoints
     private static void ComputeCandidatesSimd(
         int minR, int minG, int minB, int maxR, int maxG, int maxB, Span<float> cr, Span<float> cg, Span<float> cb)
     {
@@ -64,7 +55,7 @@ internal static partial class Bc6hEncoder
         }
     }
 
-    // 16 candidate colors for two subsets (8 each). cr/cg/cb are indexed [s*8+j]. Bit-identical to scalar.
+    // 16 candidate colors for two subsets (8 each). cr/cg/cb are indexed [s*8+j].
     // The caller invokes this only when 8 % Vector<float>.Count == 0 (widths 4 and 8); at width 16 the
     // two-subset path stays scalar, because 8 candidates underfill a 512-bit vector.
     private static void ComputeCandidates3Simd(ReadOnlySpan<int> sMin, ReadOnlySpan<int> sMax, Span<float> cr, Span<float> cg, Span<float> cb)
@@ -132,7 +123,7 @@ internal static partial class Bc6hEncoder
     }
 
     // Two-subset 3-bit weight assignment, lane-parallel over texels. Each candidate color is blended per lane
-    // by the texel's subset bit (the mask from patBits), since lanes can straddle both subsets. Bit-identical.
+    // by the texel's subset bit (the mask from patBits), since lanes can straddle both subsets
     private static double AssignWeights3Simd(
         Span<byte> weights, uint patBits, ReadOnlySpan<float> cr, ReadOnlySpan<float> cg, ReadOnlySpan<float> cb,
         ReadOnlySpan<float> fr, ReadOnlySpan<float> fg, ReadOnlySpan<float> fb, ReadOnlySpan<float> ps, bool computeError)

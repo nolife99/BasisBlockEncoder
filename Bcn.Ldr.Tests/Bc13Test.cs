@@ -1,8 +1,4 @@
-// Bc13Test.cs — in-sandbox verification for BC1/BC3 (round-trip PSNR, 4-color-always, monotonicity,
-// BC3 = BC4-alpha + BC1-color). Native-PSNR comparison (the 38.6/45.8/35.4 dB targets) needs the
-// native BasisBlockEncoder package and runs in the user's CI harness, like BC7.
 using System;
-using Bcn;
 
 namespace Bcn.Ldr;
 

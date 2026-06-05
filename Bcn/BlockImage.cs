@@ -1,7 +1,5 @@
-// BlockImage.cs — whole-image driver (namespace Bcn). Tiles an RGBA8 image into 4x4 blocks and runs
-// any IBlockEncoder over them in row-major order, producing packed block bytes. This is the per-image
-// entry point that replaces BasisBlockEncoder.BlockEncoder.EncodeBcN: the encoders themselves are
-// per-block, this adds the tiling + partial-edge handling that a whole-image API needs.
+// BlockImage.cs — Tiles an RGBA8 image into 4x4 blocks and runs any IBlockEncoder over them in 
+// row-major order, producing packed block bytes.
 //
 // Partial edge blocks (when width/height aren't multiples of 4) are filled by clamping texel
 // coordinates to the image edge — i.e. replicating the last row/column — which is the standard,
@@ -14,7 +12,7 @@ namespace Bcn;
 public static class BlockImage
 {
     /// <summary>Number of 4x4 blocks needed to cover a width x height image.</summary>
-    public static int BlockCount(int width, int height) => ((width + 3) / 4) * ((height + 3) / 4);
+    public static int BlockCount(int width, int height) => (width + 3) / 4 * ((height + 3) / 4);
 
     /// <summary>Required output byte count for the given encoder and image dimensions.</summary>
     public static int ByteCount(IBlockEncoder encoder, int width, int height)
@@ -85,15 +83,15 @@ public static class BlockImage
     // ---- per-format convenience: drop-in for BasisBlockEncoder.BlockEncoder.EncodeBcN ----
 
     public static void EncodeBc1(scoped ReadOnlySpan<byte> rgba, int width, int height, int rowStride,
-        scoped Span<byte> output, Bc1Quality quality = Bc1Quality.Default)
+        scoped Span<byte> output, Ldr.Bc1Quality quality = Ldr.Bc1Quality.Default)
         => Encode(new Bc1Encoder(quality), rgba, width, height, rowStride, output);
 
     public static void EncodeBc2(scoped ReadOnlySpan<byte> rgba, int width, int height, int rowStride,
-        scoped Span<byte> output, Bc1Quality colorQuality = Bc1Quality.Default)
+        scoped Span<byte> output, Ldr.Bc1Quality colorQuality = Ldr.Bc1Quality.Default)
         => Encode(new Bc2Encoder(colorQuality), rgba, width, height, rowStride, output);
 
     public static void EncodeBc3(scoped ReadOnlySpan<byte> rgba, int width, int height, int rowStride,
-        scoped Span<byte> output, Bc1Quality colorQuality = Bc1Quality.Default, int alphaChannel = 3)
+        scoped Span<byte> output, Ldr.Bc1Quality colorQuality = Ldr.Bc1Quality.Default, int alphaChannel = 3)
         => Encode(new Bc3Encoder(colorQuality, alphaChannel), rgba, width, height, rowStride, output);
 
     public static void EncodeBc4(scoped ReadOnlySpan<byte> rgba, int width, int height, int rowStride,

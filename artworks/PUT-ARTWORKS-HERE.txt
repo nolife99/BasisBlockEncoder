@@ -10,7 +10,3 @@ to a multiple of 4 pixels so the 4x4 block grid tiles exactly. Larger images sim
 
 Each file name becomes a BenchmarkDotNet parameter, so you can target one with e.g. --filter '*mytexture*'.
 With this folder empty, a small set of procedural textures stands in so CI still runs.
-
-These files are NOT committed by default (see .gitignore). The cross-platform byte-identity gate (golden)
-uses only gate-safe inputs — the integer-decoded artworks here and the integer/LCG synthetic surfaces — so
-its result is reproducible bit-for-bit on x64 and arm64.

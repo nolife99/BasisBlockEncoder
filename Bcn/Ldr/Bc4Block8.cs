@@ -10,8 +10,7 @@
 //   * the 48-bit selector word is packed by widening the per-pixel selector codes to long lanes and
 //     ShiftLeft-ing into two Vector256<long> accumulators (4 blocks each).
 // Solid blocks need no branch: delta == 0 makes all thresholds 0, so count == 7 and BaseTran[7] == 0,
-// i.e. an all-zero selector word and endpoints max == min — exactly what the scalar path writes.
-// V256-only; net7/ARM fall back to the per-block path.
+// i.e. an all-zero selector word and endpoints max == min.
 #if NET8_0_OR_GREATER
 using System;
 using System.Runtime.CompilerServices;

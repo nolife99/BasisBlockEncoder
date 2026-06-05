@@ -1,10 +1,9 @@
-// Bc7Mode7.cs — Mode 7 (2 subsets, RGBA). Faithful port of pack_mode7_rgba.
+// Bc7Mode7.cs — Mode 7 (2 subsets, RGBA). Port of pack_mode7_rgba.
 // 5-bit endpoints, 4 unique p-bits, 2-bit indices, 64 partitions. Uses fixed p-bits; no LS refinement.
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
 
 namespace Bcn.Bc7;
 
@@ -228,7 +227,7 @@ internal static partial class Bc7Block
         block[0]=(byte)x; block[1]=(byte)(x>>8); block[2]=(byte)(x>>16); block[3]=(byte)(x>>24);
         block[4]=(byte)(x>>32); block[5]=(byte)(x>>40); block[6]=(byte)(x>>48); block[7]=(byte)(x>>56);
 
-        ulong y = (ulong)lb[1] | ((ulong)hb[1] << 5)
+        ulong y = lb[1] | ((ulong)hb[1] << 5)
             | ((ulong)la[0] << 10) | ((ulong)ha[0] << 15) | ((ulong)la[1] << 20) | ((ulong)ha[1] << 25)
             | ((ulong)p[0] << 30) | ((ulong)p[1] << 31) | ((ulong)p[2] << 32) | ((ulong)p[3] << 33);
         int ofs = 34;

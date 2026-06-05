@@ -1,25 +1,14 @@
-// BlockEncoder.cs — the public facade, API-compatible with the original native-backed package but
-// implemented entirely on top of the managed Bcn engine (no native library, allocation-free, span-based).
-//
-// Mapping notes:
-//   * Initialize()      — no-op; the managed engine needs no native table initialization.
-//   * BC1/BC3 quality   — Bc1Quality {Fast,HighQuality} maps onto the engine's {Fast,Default,HighQuality}.
-//   * BC7 flags         — analytical bits pass straight through (identical layout); the non-analytical
-//                         brute-force bits are accepted but not acted on (see Bc7Flags remarks). 0 -> Default.
-//   * BC6H stride       — the public API takes a *byte* stride (width*3*sizeof(ushort)); the engine takes a
-//                         ushort stride, so it is divided by sizeof(ushort).
 using System;
 using System.Runtime.InteropServices;
 
 namespace BasisBlockEncoder;
 
 /// <summary>
-/// Managed CPU block compressor for BC1/BC3/BC4/BC5/BC6H/BC7. Drop-in replacement for the native-backed
-/// <c>BasisBlockEncoder</c> package: same API, no native dependency.
+/// Managed CPU block compressor for BC1/BC3/BC4/BC5/BC6H/BC7.
 /// </summary>
 public static class BlockEncoder
 {
-    // analytical BC7 bits implemented by the engine (drops NonAnalyticalRgb/Rgba = 1024/2048).
+    // analytical BC7 bits implemented by the engine (drops NonAnalyticalRgb/Rgba = 1024/2048)
     private const uint Bc7AnalyticalMask = 0x3FF;
 
     private static Bcn.Ldr.Bc1Quality MapBc1(Bc1Quality q)
@@ -35,12 +24,9 @@ public static class BlockEncoder
     private static Bcn.Bc7Flags MapBc7(uint flags)
     {
         uint m = flags & Bc7AnalyticalMask;
-        if (m == 0) m = (uint)Bcn.Bc7Flags.Default; // None -> Default for BC7
+        if (m == 0) m = (uint)Bcn.Bc7Flags.Default;
         return (Bcn.Bc7Flags)m;
     }
-
-    /// <summary>No-op in the managed build (retained for compatibility; the native build initialized tables).</summary>
-    public static void Initialize() { }
 
     /// <summary>Bytes per 4x4 block for <paramref name="format"/> (8 for BC1/BC4, otherwise 16).</summary>
     public static int BlockBytes(BcFormat format) => format is BcFormat.Bc1 or BcFormat.Bc4 ? 8 : 16;

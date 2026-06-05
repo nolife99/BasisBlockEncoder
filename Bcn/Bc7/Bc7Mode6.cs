@@ -1,7 +1,4 @@
-// Bc7Mode6.cs — part of the BC7 encoder implementation. Mode 6 (1 subset, RGBA, 4-bit indices): default commit, SIMD index eval, block writer.
 using System;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace Bcn.Bc7;
 

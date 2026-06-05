@@ -85,7 +85,7 @@ internal static class LdrDecode
         Span<byte> rgba = MemoryMarshal.AsBytes(outPx);
         for (int b = 0; b < 8; b++)
         {
-            rgba[(2 * b) * 4 + 3] = (byte)((block[b] & 0x0F) * 17);     // low nibble -> texel 2b
+            rgba[2 * b * 4 + 3] = (byte)((block[b] & 0x0F) * 17);     // low nibble -> texel 2b
             rgba[(2 * b + 1) * 4 + 3] = (byte)((block[b] >> 4) * 17);   // high nibble -> texel 2b+1
         }
     }

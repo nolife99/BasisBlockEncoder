@@ -1,4 +1,4 @@
-// ColorRgba.cs — shared RGBA8 texel used by every block codec (namespace Bcn).
+// ColorRgba.cs — shared RGBA8 texel used by every block codec
 using System.Runtime.InteropServices;
 
 namespace Bcn;

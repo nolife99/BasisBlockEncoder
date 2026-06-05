@@ -1,17 +1,8 @@
-// Benchmarks.cs — BenchmarkDotNet timing suite. One class per format, each timing the WHOLE-image encode
-// of the managed engine against the native reference (native = baseline, so the Ratio column is the managed
-// cost multiple). The artwork is a parameter (every committed image, at native resolution — no resizing).
-// Two non-timed columns (added via QualityConfig) report decoded PSNR and the %-of-blocks bit-identical to
-// native; they are computed once in the host process by Quality, not inside any measured region.
-using System;
-using System.Collections.Generic;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Columns;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Reports;
 using BenchmarkDotNet.Running;
-using Bcn;            // BlockImage, Bc7Flags
-using Bcn.Ldr;        // Bc1Quality
 using MHdr = Bcn.Hdr; // Bc6hImage, Bc6hQuality
 using NEnc = BasisBlockEncoder.BlockEncoder;
 using NBc1Q = BasisBlockEncoder.Bc1Quality;
@@ -43,7 +34,7 @@ public class Bc1Benchmarks : LdrBench
 {
     protected override int Bpb => 8;
     [Benchmark(Baseline = true, Description = "native")] public void Native() { if (NativeOk) NEnc.EncodeBc1(Img.Rgba, Img.W, Img.H, Img.StrideBytes, Dst, NBc1Q.HighQuality); }
-    [Benchmark(Description = "managed")] public void Managed() => BlockImage.EncodeBc1(Img.Rgba, Img.W, Img.H, Img.StrideBytes, Dst, Bc1Quality.HighQuality);
+    [Benchmark(Description = "managed")] public void Managed() => BlockImage.EncodeBc1(Img.Rgba, Img.W, Img.H, Img.StrideBytes, Dst, Ldr.Bc1Quality.HighQuality);
 }
 
 [MemoryDiagnoser, HideColumns("Error", "StdDev", "Median", "RatioSD"), Config(typeof(QualityConfig))]
@@ -51,7 +42,7 @@ public class Bc3Benchmarks : LdrBench
 {
     protected override int Bpb => 16;
     [Benchmark(Baseline = true, Description = "native")] public void Native() { if (NativeOk) NEnc.EncodeBc3(Img.Rgba, Img.W, Img.H, Img.StrideBytes, Dst, NBc1Q.HighQuality); }
-    [Benchmark(Description = "managed")] public void Managed() => BlockImage.EncodeBc3(Img.Rgba, Img.W, Img.H, Img.StrideBytes, Dst, Bc1Quality.HighQuality);
+    [Benchmark(Description = "managed")] public void Managed() => BlockImage.EncodeBc3(Img.Rgba, Img.W, Img.H, Img.StrideBytes, Dst, Ldr.Bc1Quality.HighQuality);
 }
 
 [MemoryDiagnoser, HideColumns("Error", "StdDev", "Median", "RatioSD"), Config(typeof(QualityConfig))]

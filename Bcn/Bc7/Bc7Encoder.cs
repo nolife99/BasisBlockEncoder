@@ -1,4 +1,3 @@
-// Bc7Encoder.cs — public API wrapper over the Bcn.Bc7 implementation (namespace Bcn).
 using System;
 
 namespace Bcn;

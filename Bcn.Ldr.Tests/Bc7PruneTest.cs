@@ -91,7 +91,7 @@ internal static class Bc7PruneTest
                     for (int i = 0; i < 16; i++) bl[o + i] = new ColorRgba((byte)rng.Next(256), (byte)rng.Next(256), (byte)rng.Next(256), (byte)rng.Next(256));
                     break;
                 case 1: // opaque-random
-                    for (int i = 0; i < 16; i++) bl[o + i] = new ColorRgba((byte)rng.Next(256), (byte)rng.Next(256), (byte)rng.Next(256), (byte)255);
+                    for (int i = 0; i < 16; i++) bl[o + i] = new ColorRgba((byte)rng.Next(256), (byte)rng.Next(256), (byte)rng.Next(256), 255);
                     break;
                 case 2: // gradient + noise (two-region structure the multi-subset modes win on -> exercises the prune)
                 {

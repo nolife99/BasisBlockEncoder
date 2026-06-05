@@ -18,7 +18,7 @@ namespace Bcn.Hdr;
 public static class Bc6hImage
 {
     /// <summary>Number of 4x4 blocks covering a width x height image.</summary>
-    public static int BlockCount(int width, int height) => ((width + 3) / 4) * ((height + 3) / 4);
+    public static int BlockCount(int width, int height) => (width + 3) / 4 * ((height + 3) / 4);
 
     /// <summary>Required output byte count (16 bytes per block).</summary>
     public static int ByteCount(int width, int height) => BlockCount(width, height) * 16;

@@ -1,11 +1,3 @@
-// Quality.cs — non-timed quality computation shared by the BenchmarkDotNet column and the `verify` report.
-// For a given (format, artwork) it encodes the whole image with both the managed engine and the native
-// reference, decodes each with the managed decoder (a conformant decoder reconstructs identically regardless
-// of which encoder produced the block), and reports PSNR for each plus the % of blocks whose bytes are
-// bit-identical to native. BC6H uses an SNR-style metric (HDR has no fixed peak). Results are cached.
-using System;
-using System.Collections.Generic;
-using Bcn;            // BlockImage, ColorRgba
 using Bcn.Ldr;        // LdrDecode, Bc1Quality (internal decoders via InternalsVisibleTo)
 using Bcn.Bc7;        // Bc7Decoder
 using MHdr = Bcn.Hdr; // Bc6hImage, Bc6hQuality

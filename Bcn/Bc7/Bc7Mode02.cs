@@ -1,13 +1,11 @@
-// Bc7Mode02.cs — Modes 0 & 2 (3 subsets, RGB). Faithful port of pack_mode0_or_2_rgb.
+// Bc7Mode02.cs — Modes 0 & 2 (3 subsets, RGB). Port of pack_mode0_or_2_rgb.
 //   Mode 0: 4-bit endpoints, 6 unique p-bits, 3-bit indices, 16 partitions.
 //   Mode 2: 5-bit endpoints, no p-bits,    2-bit indices, 64 partitions.
-// This path uses fixed p-bits (mode 0) and does not apply the least-squares endpoint refinement — both
-// are quality refinements rather than correctness, consistent with the other mode paths.
+// This path uses fixed p-bits (mode 0) and does not apply the least-squares endpoint refinement.
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
 
 namespace Bcn.Bc7;
 
@@ -270,7 +268,7 @@ internal static partial class Bc7Block
             for (int s = 0; s < 3; s++) {
                 eLoR[s] = From4((int)lr[s], pbits[s * 2]); eLoG[s] = From4((int)lg[s], pbits[s * 2]); eLoB[s] = From4((int)lb[s], pbits[s * 2]);
                 eHiR[s] = From4((int)hr[s], pbits[s * 2 + 1]); eHiG[s] = From4((int)hg[s], pbits[s * 2 + 1]); eHiB[s] = From4((int)hb[s], pbits[s * 2 + 1]); }
-            if (wantSse) { long sx = SseMultiSubsetRgb(eLoR, eLoG, eLoB, eHiR, eHiG, eHiB, Bc7Tables.Partition3, (int)patM0 * 16, Bc7Tables.Weights3, w, px);
+            if (wantSse) { long sx = SseMultiSubsetRgb(eLoR, eLoG, eLoB, eHiR, eHiG, eHiB, Bc7Tables.Partition3, patM0 * 16, Bc7Tables.Weights3, w, px);
               trueSse = sx > uint.MaxValue ? uint.MaxValue : (uint)sx; }
             EncodeMode0(block, (uint)patM0, lr, lg, lb, hr, hg, hb, pbits, w);
         }
@@ -296,7 +294,7 @@ internal static partial class Bc7Block
             for (int s = 0; s < 3; s++) {
                 eLoR[s] = From5((int)lr[s]); eLoG[s] = From5((int)lg[s]); eLoB[s] = From5((int)lb[s]);
                 eHiR[s] = From5((int)hr[s]); eHiG[s] = From5((int)hg[s]); eHiB[s] = From5((int)hb[s]); }
-            if (wantSse) { long sx = SseMultiSubsetRgb(eLoR, eLoG, eLoB, eHiR, eHiG, eHiB, Bc7Tables.Partition3, (int)patM2 * 16, Bc7Tables.Weights2, w, px);
+            if (wantSse) { long sx = SseMultiSubsetRgb(eLoR, eLoG, eLoB, eHiR, eHiG, eHiB, Bc7Tables.Partition3, patM2 * 16, Bc7Tables.Weights2, w, px);
               trueSse = sx > uint.MaxValue ? uint.MaxValue : (uint)sx; }
             EncodeMode2(block, (uint)patM2, lr, lg, lb, hr, hg, hb, w);
         }
@@ -400,7 +398,7 @@ internal static partial class Bc7Block
         block[0] = (byte)v;         block[1] = (byte)(v >> 8);  block[2] = (byte)(v >> 16); block[3] = (byte)(v >> 24);
         block[4] = (byte)(v >> 32); block[5] = (byte)(v >> 40); block[6] = (byte)(v >> 48); block[7] = (byte)(v >> 56);
 
-        ulong v1 = (ulong)hg[2]
+        ulong v1 = hg[2]
             | ((ulong)lb[0] << 5)  | ((ulong)hb[0] << 10)
             | ((ulong)lb[1] << 15) | ((ulong)hb[1] << 20)
             | ((ulong)lb[2] << 25) | ((ulong)hb[2] << 30);

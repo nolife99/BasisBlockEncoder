@@ -1,4 +1,3 @@
-// Bc7Block.cs — part of the BC7 encoder implementation. Analytical selector, geometric estimators, shared endpoint helpers, dispatcher.
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -11,7 +10,6 @@ namespace Bcn.Bc7;
 
 internal static partial class Bc7Block
 {
-    // Entry point (mirrors fast_pack_bc7_auto_rgba): scan for alpha, route to the RGBA/RGB path.
     internal static void Encode(scoped ReadOnlySpan<ColorRgba> pixels, scoped Span<byte> output, Bc7Flags flags)
     {
         // Any non-opaque pixel? ColorRgba reinterprets to uint as A<<24|B<<16|G<<8|R, so alpha is the high byte
@@ -243,7 +241,7 @@ internal static partial class Bc7Block
         if (candBest != uint.MaxValue && Mode6PruneEnabled)
         {
             double lam = LambdaMax3x3Sym(icov[0], icov[1], icov[2], icov[3], icov[4], icov[5]);
-            long bound = (long)Math.Floor((double)(icov[0] + icov[3] + icov[5]) - lam) - Mode6PruneMargin;
+            long bound = (long)Math.Floor(icov[0] + icov[3] + icov[5] - lam) - Mode6PruneMargin;
             if (bound > 0 && candBest <= (ulong)bound)   // mode 6 provably loses and is imperfect
             {
                 if (sse45 != uint.MaxValue && candBest == sse45) cand45.CopyTo(block);
@@ -273,7 +271,7 @@ internal static partial class Bc7Block
         for (int i = 0; i < 16; i++)
         {
             ref readonly ColorRgba q = ref Unsafe.Add(ref pr, i);
-            int y = (32 * q.R + 64 * q.G + 16 * q.B) + i;
+            int y = 32 * q.R + 64 * q.G + 16 * q.B + i;
             if (y < lo) lo = y;
             if (y > hi) hi = y;
         }
@@ -333,8 +331,8 @@ internal static partial class Bc7Block
     {
         float totalVar = cov[0] + cov[3] + cov[5];
         float l = MathF.Sqrt(xr * xr + yr * yr + zr * zr);
-        if (l < SmallFloat) { xr = yr = zr = 0.577350269f; }
-        else { l = 1f / l; xr *= l; yr *= l; zr *= l; }
+        if (l < SmallFloat) xr = yr = zr = 0.577350269f;
+        else l = 1f / l; xr *= l; yr *= l; zr *= l;
 
         float xr2 = cov[0] * xr + cov[1] * yr + cov[2] * zr;
         float xg2 = cov[1] * xr + cov[3] * yr + cov[4] * zr;
@@ -342,7 +340,7 @@ internal static partial class Bc7Block
 
         float principalAxisVar = xr2 * xr + xg2 * yr + xb2 * zr;
         float orthoVar = MathF.Max(0f, totalVar - principalAxisVar);
-        orthoRatio = (totalVar > SmallFloat) ? (orthoVar / totalVar) : 0f;
+        orthoRatio = totalVar > SmallFloat ? (orthoVar / totalVar) : 0f;
         return orthoVar;
     }
 
@@ -1168,11 +1166,11 @@ internal static partial class Bc7Block
 
         float pixelSse = (eLevels == 256)
             ? 0.0f
-            : (dep * dep) * ((1.0f / 12.0f) * abSum * (255.0f * 255.0f)) * numChans * endpointWeightScale;
+            : dep * dep * (1.0f / 12.0f * abSum * (255.0f * 255.0f)) * numChans * endpointWeightScale;
 
-        float k = (dw * dw) * (1.0f / 12.0f);
+        float k = dw * dw * (1.0f / 12.0f);
         for (int i = 0; i < numChans; i++)
-            pixelSse += k * (float)(spans[i] * spans[i]) * (spanWeights.IsEmpty ? 1.0f : spanWeights[i]);
+            pixelSse += k * (spans[i] * spans[i]) * (spanWeights.IsEmpty ? 1.0f : spanWeights[i]);
 
         return pixelSse * numPixels;
     }
@@ -1187,8 +1185,8 @@ internal static partial class Bc7Block
         float abSum = (2.0f * n - 1.0f) / (3.0f * (n - 1.0f));
         float pixelSse = (eLevels == 256)
             ? 0.0f
-            : (dep * dep) * ((1.0f / 12.0f) * abSum * (255.0f * 255.0f)) * endpointWeightScale;
-        pixelSse += (dw * dw) * (1.0f / 12.0f) * (float)(span * span) * spanWeight;
+            : dep * dep * (1.0f / 12.0f * abSum * (255.0f * 255.0f)) * endpointWeightScale;
+        pixelSse += dw * dw * (1.0f / 12.0f) * (span * span) * spanWeight;
         return pixelSse * numPixels;
     }
 }

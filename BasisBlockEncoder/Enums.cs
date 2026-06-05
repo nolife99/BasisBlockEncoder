@@ -1,25 +1,21 @@
-// Enums.cs — public configuration types for the managed BasisBlockEncoder drop-in.
-//
-// These mirror the original native-backed package's surface 1:1 (same names, same numeric values) so existing
-// callers compile and behave the same. The Bc7Flags bit layout matches basis_universal's cPackBC7Flag* values.
 using System;
 
 namespace BasisBlockEncoder;
 
-/// <summary>Target block-compression format. (BC2 is intentionally absent, matching the original package.)</summary>
+/// <summary>Target block-compression format.</summary>
 public enum BcFormat
 {
-    /// <summary>BC1 — RGB (+1-bit alpha), 8 bytes/block.</summary>
+    /// <summary>RGB (+1-bit alpha), 8 bytes/block.</summary>
     Bc1 = 0,
-    /// <summary>BC3 — BC4 alpha block + BC1 color block, 16 bytes/block.</summary>
+    /// <summary>BC4 alpha block + BC1 color block, 16 bytes/block.</summary>
     Bc3 = 1,
-    /// <summary>BC4 — single channel, 8 bytes/block.</summary>
+    /// <summary>Single channel, 8 bytes/block.</summary>
     Bc4 = 2,
-    /// <summary>BC5 — two channels, 16 bytes/block.</summary>
+    /// <summary>Two channels, 16 bytes/block.</summary>
     Bc5 = 3,
-    /// <summary>BC6H — unsigned HDR RGB (FP16), 16 bytes/block.</summary>
+    /// <summary>Unsigned HDR RGB (FP16), 16 bytes/block.</summary>
     Bc6h = 4,
-    /// <summary>BC7 — high quality RGBA, 16 bytes/block.</summary>
+    /// <summary>High quality RGBA, 16 bytes/block.</summary>
     Bc7 = 5,
 }
 
@@ -53,8 +49,7 @@ public enum Bc6hQuality
 /// performed; those bits are accepted for source compatibility but do not enable extra work, so
 /// <see cref="HighQuality"/> resolves to the full analytical search.
 /// </remarks>
-[Flags]
-public enum Bc7Flags : uint
+[Flags] public enum Bc7Flags : uint
 {
     /// <summary>No flags. The encoder substitutes <see cref="Default"/> when 0 is passed for BC7.</summary>
     None = 0,

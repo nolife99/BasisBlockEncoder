@@ -1,13 +1,11 @@
-// Bc7Mode45.cs — Modes 4 & 5 (dual plane), faithful port of pack_mode4_or_5.
+// Bc7Mode45.cs — Modes 4 & 5 (dual plane), port of pack_mode4_or_5.
 // One colour plane (RGB) + one scalar plane carrying the decorrelated channel, which is rotated into
 // the alpha slot (component rotation). Mode 4: 5-bit RGB / 6-bit scalar, 2+3-bit dual indices with an
 // index-selection bit. Mode 5: 7-bit RGB / 8-bit scalar, 2+2-bit dual indices.
 // The least-squares endpoint refinement is not applied here (a quality refinement, not correctness).
 using System;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
 
 namespace Bcn.Bc7;
 
@@ -150,7 +148,7 @@ internal static partial class Bc7Block
         int lr, int lg, int lb, int hr, int hg, int hb, int levels)
     {
         int dr = hr - lr, dg = hg - lg, db = hb - lb, mx = levels - 1;
-        float f = (levels - 1) / ((float)(dr * dr + dg * dg + db * db) + 0.00000125f);
+        float f = (levels - 1) / (dr * dr + dg * dg + db * db + 0.00000125f);
         int sofs = lr * dr + lg * dg + lb * db;
         EvalSelRgb(px, w, dr, dg, db, -sofs, f, mx);
     }
@@ -159,7 +157,7 @@ internal static partial class Bc7Block
     private static void EvalAPlane(scoped ReadOnlySpan<ColorRgba> px, scoped Span<int> w, int la, int ha, int levels)
     {
         int da = ha - la, mx = levels - 1;
-        float f = (levels - 1) / ((float)da + 0.00000125f);
+        float f = (levels - 1) / (da + 0.00000125f);
         EvalSelA(px, w, la, f, mx);
     }
 

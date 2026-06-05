@@ -1,13 +1,12 @@
 // Bc4Block.cs — BC4 / DXT5A single-channel block encoder (namespace Bcn.Ldr).
 //
-// Faithful port of basist::encode_bc4 (== rgbcx::encode_bc4), the optimal fast min/max BC4 kernel
-// (matches brute-force closest-of-8 for the chosen endpoints). Produces byte-identical output to the
-// reference BC4 encoder. Shared unchanged by BC4, BC5 (two of these), and BC3's alpha.
+// Port of basist::encode_bc4 (== rgbcx::encode_bc4), the optimal fast min/max BC4 kernel
+// (matches brute-force closest-of-8 for the chosen endpoints). Shared unchanged by BC4, 
+// BC5 (two of these), and BC3's alpha.
 //
 // Tiering follows the BC7 encoder: width-adaptive SIMD with a scalar fallback. All arithmetic here is
 // integer (multiply, add, signed compare, count, OR-shift), so every tier is order-independent and
-// bit-identical to the scalar path by construction — the same byte-identity argument the BC7 integer
-// kernels (BlockStats/Covariance/SSD) rely on. The only non-vectorized step is the final 48-bit selector
+// bit-identical to the scalar path. The only non-vectorized step is the final 48-bit selector
 // pack, which is inherently scalar and cheap (as in BC7).
 //
 // Whether SIMD outperforms scalar for 16 inexpensive elements depends on the workload, so the tiers

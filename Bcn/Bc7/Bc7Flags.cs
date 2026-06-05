@@ -1,4 +1,3 @@
-// Bc7Flags.cs — public BC7 encoder configuration (namespace Bcn).
 using System;
 
 namespace Bcn;

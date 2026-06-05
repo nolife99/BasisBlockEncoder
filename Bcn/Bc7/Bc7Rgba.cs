@@ -1,12 +1,8 @@
-// Bc7Rgba.cs — the RGBA analytical path (faithful port of fast_pack_bc7_rgba_analytical).
+// Bc7Rgba.cs — the RGBA analytical path (port of fast_pack_bc7_rgba_analytical).
 // 4D analogue of the RGB brain: solid early-out, 4D covariance/PCA, dual-plane detection (prefer alpha),
 // trivial mode 6, then an estimate->bail cascade across modes 4/5 (dual plane), 7 (2-subset), and 6.
 // Uses fixed p-bits; the least-squares endpoint refinement is not applied.
 using System;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
 
 namespace Bcn.Bc7;
 

@@ -1,13 +1,3 @@
-// Images.cs — corpus for the BenchmarkDotNet encoder suite.
-//
-// Whole images, at their native resolution. There is deliberately NO size parameter: each artwork is encoded
-// as-is (cropped only to a multiple of 4 so the 4x4 block grid tiles exactly). LDR formats consume the .png/
-// .jpg/... files; BC6H consumes Radiance .hdr files (decoded to FP16). When the artworks folder is empty a
-// small set of procedural textures stands in so the suite still runs in CI before real assets are committed.
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using StbImageSharp;
 
 namespace Bcn.Bench;

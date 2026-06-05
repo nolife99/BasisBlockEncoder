@@ -1,4 +1,3 @@
-// BlockCodec.cs — cross-codec format descriptor + encoder seam (namespace Bcn).
 using System;
 
 namespace Bcn;
@@ -21,11 +20,9 @@ public interface IBlockEncoder
     void EncodeBlock(scoped ReadOnlySpan<ColorRgba> pixels, scoped Span<byte> output);
 }
 
-/// <summary>
-/// Optional fast path: encode 8 block-contiguous blocks in one call (lane = block SIMD). BlockImage uses
-/// this when <see cref="SupportsBatch8"/> is true and the format is 8 bytes/block, otherwise it falls back
-/// to per-block EncodeBlock. Internal: a throughput detail, not part of the public encoder contract.
-/// </summary>
+// Optional fast path: encode 8 block-contiguous blocks in one call (lane = block SIMD). BlockImage uses
+// this when SupportsBatch8 is true and the format is 8 bytes/block, otherwise it falls back
+// to per-block EncodeBlock
 internal interface IBlockEncoder8
 {
     bool SupportsBatch8 { get; }

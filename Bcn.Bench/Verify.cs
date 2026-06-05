@@ -1,9 +1,3 @@
-// Verify.cs — non-timed quality-parity report across every format and artwork (whole images). Prints, per
-// case, the %-of-blocks bit-identical to native, managed PSNR, native PSNR, and the delta. Returns a non-zero
-// exit code if a comparable format's managed PSNR trails native by more than the tolerance, so `verify` works
-// as a CI quality gate (it runs on x64 and arm64 — the native reference ships both architectures).
-using System;
-
 namespace Bcn.Bench;
 
 internal static class Verify

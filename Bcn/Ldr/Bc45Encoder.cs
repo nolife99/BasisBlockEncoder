@@ -1,8 +1,3 @@
-// Bc45Encoder.cs — public BC4 / BC5 block encoders (namespace Bcn.Ldr).
-//
-// BC4 = one optimal single-channel block (Bc4Block). BC5 = two independent BC4 blocks (two channels).
-// Both are byte-for-byte identical to the native basisu/rgbcx encode_bc4 and provably optimal for the
-// chosen min/max endpoints, so there is no quality knob — the output is fixed and best-possible.
 using System;
 
 namespace Bcn.Ldr;

@@ -1,8 +1,3 @@
-// StreamWriters.cs — banded streaming writers, API-compatible with the original package. Each writer tracks
-// the destination offset so callers can feed a surface top-to-bottom in bands without holding the whole image.
-// Bands must be a multiple of 4 rows except the final one. A band of N rows is encoded as a standalone
-// sub-image of height N; because bands are 4-row aligned, no block ever spans a band boundary, and the final
-// (possibly partial) band clamps to its last row exactly as the original does.
 using System;
 using System.Runtime.InteropServices;
 

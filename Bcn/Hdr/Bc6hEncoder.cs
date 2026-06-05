@@ -1,18 +1,6 @@
-// BC6H (unsigned) encoder — managed port of basis_universal's astc_6x6_hdr::fast_encode_bc6h.
-// Cascade: solid (mode 13) -> simple 1-subset -> complex 1-subset (PCA + LS) -> optional 2-subset.
-//
-// Two working spaces (matching basis), both kept SoA (planar) to ease vectorization:
-//   * endpoint selection (covariance, PCA axis, projection, LS) runs on the FP16 *bit patterns*
-//     as ints/floats — the half encoding is monotonic and ~log, a free perceptual domain.
-//   * weight assignment + error converts interpolated half-bits to real float values via a bit-trick
-//     and scores 1/luma^2-weighted (relative) squared error.
-//
-// SoA note: ir/ig/ib (int half-bits) and fr/fg/fb/scales (float) are de-interleaved once up front;
-// every 16-texel loop below reads these planar arrays, so each maps to wide SIMD lanes later.
 using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
-using System.Runtime.Intrinsics;
 
 namespace Bcn.Hdr;
 

@@ -1,11 +1,7 @@
-// BC6H validation: compares the managed encoder against the native oracle.
 // For each synthetic HDR block, encode with both, decode with the managed decoder,
 // and report 1/luma^2-weighted (relative) PSNR + peak PSNR per quality tier.
 using System;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Numerics;
-using System.Runtime.Intrinsics;
 using Bcn.Hdr;
 
 internal static class Bc6hOracleTest
@@ -166,5 +162,4 @@ internal static class Bc6hOracleTest
         double psnr = 20.0 * Math.Log10(maxv / rmse);
         Console.WriteLine($"  decode round-trip: peak PSNR {psnr:F1} dB over {n3 / 3} pixels (maxVal {maxv:F1})");
     }
-
 }

@@ -1,9 +1,7 @@
 // Bc7Mode13.cs — part of the BC7 encoder implementation. Modes 1 & 3 (2 subsets, RGB): analytical partition + pair selection + writers.
 using System;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
 
 namespace Bcn.Bc7;
 
@@ -336,7 +334,7 @@ internal static partial class Bc7Block
 
         block[0] = (byte)(0b10 | (partId << 2));
 
-        ulong x = (ulong)lr[0] | ((ulong)hr[0] << 6)
+        ulong x = lr[0] | ((ulong)hr[0] << 6)
             | ((ulong)lr[1] << 12) | ((ulong)hr[1] << 18)
             | ((ulong)lg[0] << 24) | ((ulong)hg[0] << 30)
             | ((ulong)lg[1] << 36) | ((ulong)hg[1] << 42)
@@ -346,7 +344,7 @@ internal static partial class Bc7Block
         block[5] = (byte)(x >> 32); block[6] = (byte)(x >> 40); block[7] = (byte)(x >> 48); block[8] = (byte)(x >> 56);
         block[9] = (byte)((lb[1] >> 4) | (hb[1] << 2));   // top 2 bits of lb1, then hb1
 
-        ulong y = (ulong)p0 | ((ulong)p1 << 1);
+        ulong y = p0 | ((ulong)p1 << 1);
         int ofs = 2;
         for (int i = 0; i < 16; i++)
         {
