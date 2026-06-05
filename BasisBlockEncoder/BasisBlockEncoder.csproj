@@ -16,19 +16,16 @@
     <Description>Managed (pure C#) drop-in replacement for BasisBlockEncoder: identical public API for BC1/BC3/BC4/BC5/BC6H/BC7 CPU block compression, with no native dependency. SIMD-accelerated via System.Runtime.Intrinsics with scalar fallback; allocation-free, span-based.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
     <PackageTags>bc7;bc1;bc3;bc4;bc5;bc6h;texture;compression;dxt;bcn;gpu;basisu;encoder;managed;simd</PackageTags>
     <IncludeSymbols>false</IncludeSymbols>
   </PropertyGroup>
 
-  <!-- Compile the engine sources straight into this assembly so BasisBlockEncoder.dll is a single,
-       self-contained DLL (engine + drop-in API) with no native runtime and no package dependency. These are
-       the same sources the Bcn project builds; this is a <Compile Include>, NOT a ProjectReference, so the
-       engine is bundled, not referenced. -->
   <ItemGroup>
     <Compile Include="..\Bcn\**\*.cs" Exclude="..\Bcn\bin\**\*.cs;..\Bcn\obj\**\*.cs" />
   </ItemGroup>
 
-  <!-- The repository README doubles as the NuGet package landing page. -->
   <ItemGroup>
     <None Include="..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
