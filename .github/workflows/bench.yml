@@ -3,28 +3,23 @@ name: bench
 on:
   workflow_dispatch:
     inputs:
-      filter:
-        description: 'BenchmarkDotNet --filter glob (e.g. *Bc7* or *)'
-        default: '*'
-        required: false
       job:
         description: 'BenchmarkDotNet job (dry / short / medium / default)'
         default: 'short'
         required: false
-  # schedule:
-  #   - cron: '0 6 * * 1'   # Mondays 06:00 UTC; scheduled runs use the defaults below (filter=*, job=short)
 
 jobs:
   benchmark:
-    name: benchmark (${{ matrix.arch }})
+    name: bench ${{ matrix.format }} (${{ matrix.arch.name }})
     timeout-minutes: 360
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - { arch: x64,   runs-on: ubuntu-24.04 }
-          - { arch: arm64, runs-on: ubuntu-24.04-arm }
-    runs-on: ${{ matrix.runs-on }}
+        format: [Bc1, Bc2, Bc3, Bc4, Bc5, Bc6h, Bc7]
+        arch:
+          - { name: x64,   runs-on: ubuntu-24.04 }
+          - { name: arm64, runs-on: ubuntu-24.04-arm }
+    runs-on: ${{ matrix.arch.runs-on }}
     steps:
       - uses: actions/checkout@v4
 
@@ -32,8 +27,6 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      # Optional real-asset corpus. Set repository variables ARTWORKS_URL and ARTWORKS_SHA256 to a fixed,
-      # checksummed tar archive (images at the archive root). Unset -> the suite uses procedural textures.
       - name: Fetch test artworks (optional)
         if: ${{ vars.ARTWORKS_URL != '' }}
         run: |
@@ -48,11 +41,11 @@ jobs:
         run: >
           dotnet run --project Bcn.Bench -c Release --
           bench
-          --filter "${{ github.event.inputs.filter || '*' }}"
+          --filter "*${{ matrix.format }}*"
           --job "${{ github.event.inputs.job || 'short' }}"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: benchmark-results-${{ matrix.arch }}
+          name: benchmark-results-${{ matrix.format }}-${{ matrix.arch.name }}
           path: BenchmarkDotNet.Artifacts/results/**
           if-no-files-found: warn
