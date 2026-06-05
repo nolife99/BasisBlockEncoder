@@ -118,6 +118,8 @@ internal static class Bc12ImageTest
             new Bc4Encoder(0), new Bc4Encoder(3), new Bc5Encoder(0, 1),
         };
         long batchDiffs = 0;
+
+        Span<ColorRgba> tl = stackalloc ColorRgba[16];  
         foreach (var e in encs)
             foreach (var (w, h) in sizes)
             {
@@ -128,7 +130,8 @@ internal static class Bc12ImageTest
                 BlockImage.Encode(e, im, w, h, st, got);                  // batch path on AVX2
                 byte[] exp = new byte[nb * bpb];                          // per-block reference
                 int ww = (w + 3) / 4, hh = (h + 3) / 4, bb = 0;
-                Span<ColorRgba> tl = stackalloc ColorRgba[16];            // hahahahahaha
+
+                tl.Clear();
                 for (int by = 0; by < hh; by++)
                     for (int bx = 0; bx < ww; bx++, bb++)
                     {
