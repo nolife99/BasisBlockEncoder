@@ -1,28 +1,12 @@
-# Build output
-[Bb]in/
-[Oo]bj/
-build/
-native/build/
-out/
+*/bin/
+*/obj/
 
-# Native runtimes are produced by CI before pack; don't commit them.
-runtimes/
-
-# NuGet output
-nupkg/
-*.nupkg
-*.snupkg
-
-# Fetched dependency (when using FetchContent without a separate build dir)
-_deps/
-
-# IDE / OS
 .vs/
-.vscode/
-*.user
-*.suo
-.DS_Store
+.idea/
+*.tmp
 
-# Test results
-[Tt]est[Rr]esults/
-*.trx
+packages/*
+!packages/repositories.config
+nuget.exe
+GlobalSuppressions.cs
+/editor/editor.csproj.user

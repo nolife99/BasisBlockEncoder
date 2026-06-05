@@ -1,119 +1,71 @@
 name: ci
 
+# Correctness + cross-platform byte-identity gate. Runs x64 and arm64 in parallel (matrix, fail-fast off),
+# then a final job asserts the managed encoder produced byte-identical output on both architectures.
 on:
   push:
-    branches: [ main ]
+    branches: [main, master]
   pull_request:
+  workflow_dispatch:
 
 jobs:
-  native:
-    name: native (${{ matrix.rid }})
+  build-test:
+    name: build-test (${{ matrix.arch }})
     strategy:
       fail-fast: false
       matrix:
         include:
-          # x86 / x64 Windows (32-bit + 64-bit)
-          - os: windows-latest
-            rid: win-x64
-            lib: basis_block_encoder.dll
-            platform: x64
-          - os: windows-latest
-            rid: win-x86
-            lib: basis_block_encoder.dll
-            platform: Win32
-          - os: windows-11-arm
-            rid: win-arm64
-            lib: basis_block_encoder.dll
-            platform: ARM64
-          # x64 Linux
-          - os: ubuntu-latest
-            rid: linux-x64
-            lib: libbasis_block_encoder.so
-          # 32-bit ARM Linux (ARMv7), cross-compiled
-          - os: ubuntu-latest
-            rid: linux-arm
-            lib: libbasis_block_encoder.so
-            apt: g++-arm-linux-gnueabihf
-            toolchain: toolchain-linux-arm.cmake
-          # 64-bit ARM Linux (AArch64), cross-compiled
-          - os: ubuntu-latest
-            rid: linux-arm64
-            lib: libbasis_block_encoder.so
-            apt: g++-aarch64-linux-gnu
-            toolchain: toolchain-linux-arm64.cmake
-          # macOS (Intel + Apple Silicon)
-          - os: macos-14
-            rid: osx-x64
-            lib: libbasis_block_encoder.dylib
-            osx_arch: x86_64
-          - os: macos-14
-            rid: osx-arm64
-            lib: libbasis_block_encoder.dylib
-            osx_arch: arm64
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install cross toolchain
-        if: matrix.apt != ''
-        run: sudo apt-get update && sudo apt-get install -y ${{ matrix.apt }}
-
-      - name: Configure
-        shell: bash
-        run: |
-          args=(-S native -B native/build -DCMAKE_BUILD_TYPE=Release)
-          [ -n "${{ matrix.platform }}" ] && args+=(-A "${{ matrix.platform }}")
-          [ -n "${{ matrix.toolchain }}" ] && args+=(-DCMAKE_TOOLCHAIN_FILE="$PWD/native/cmake/${{ matrix.toolchain }}")
-          [ -n "${{ matrix.osx_arch }}" ] && args+=(-DCMAKE_OSX_ARCHITECTURES="${{ matrix.osx_arch }}" -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0)
-          echo "cmake ${args[*]}"
-          cmake "${args[@]}"
-
-      - name: Build
-        run: cmake --build native/build --config Release --parallel
-
-      - name: Collect library
-        shell: bash
-        run: |
-          mkdir -p out
-          found="$(find native/build -name '${{ matrix.lib }}' -type f | head -1)"
-          if [ -z "$found" ]; then echo "::error::built library not found"; find native/build -type f; exit 1; fi
-          echo "found: $found"
-          cp "$found" "out/${{ matrix.lib }}"
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: native-${{ matrix.rid }}
-          path: out/${{ matrix.lib }}
-          if-no-files-found: error
-
-  dotnet:
-    name: build & test
-    needs: native
-    runs-on: ubuntu-latest
+          - { arch: x64,   runs-on: ubuntu-24.04 }
+          - { arch: arm64, runs-on: ubuntu-24.04-arm }
+    runs-on: ${{ matrix.runs-on }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '10.0.x'
 
+      # Restore reads the repo nuget.config: nuget.org + the bundled ./localpackages feed (which carries the
+      # native BasisBlockEncoder reference package, so this works even if that package is not on nuget.org).
+      - name: Build managed engine
+        run: dotnet build Bcn/Bcn.csproj -c Release
+
+      # Pure-managed correctness: LDR round-trips + the scalar==V128==V256 SIMD-tier identity checks.
+      - name: Correctness suite (managed)
+        run: dotnet run --project Bcn.Ldr.Tests -c Release
+
+      # Managed vs native PSNR parity (native ships arm64, so this runs on both architectures).
+      # Returns non-zero if any comparable format trails native by > 0.75 dB.
+      - name: Quality parity vs native
+        run: dotnet run --project Bcn.Bench -c Release -- verify
+
+      # Per-architecture byte-identity digests for the managed encoder (gate-safe corpus, all formats).
+      - name: Write golden digests
+        run: dotnet run --project Bcn.Bench -c Release -- golden-write golden-${{ matrix.arch }}.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: golden-${{ matrix.arch }}
+          path: golden-${{ matrix.arch }}.txt
+
+  cross-platform-identity:
+    name: cross-platform byte identity
+    needs: build-test
+    runs-on: ubuntu-24.04
+    steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: native-*
-          path: artifacts
-
-      - name: Stage natives into runtimes/
-        shell: bash
+          path: goldens
+      - name: Assert x64 and arm64 are byte-identical
         run: |
-          for d in artifacts/native-*; do
-            rid="${d#artifacts/native-}"
-            mkdir -p "runtimes/$rid/native"
-            cp "$d"/* "runtimes/$rid/native/"
-          done
-          find runtimes -type f
-
-      - name: Build
-        run: dotnet build src/BasisBlockEncoder/BasisBlockEncoder.csproj -c Release
-
-      - name: Test
-        run: LD_LIBRARY_PATH="$PWD/runtimes/linux-x64/native" dotnet test tests/BasisBlockEncoder.Tests/BasisBlockEncoder.Tests.csproj -c Release
+          x="$(find goldens -name 'golden-x64.txt' | head -1)"
+          a="$(find goldens -name 'golden-arm64.txt' | head -1)"
+          echo "x64:   $x"
+          echo "arm64: $a"
+          # Compare everything except the header comment line (case count etc. are identical anyway).
+          if diff <(grep -v '^#' "$x") <(grep -v '^#' "$a"); then
+            echo "PASS: managed encoder output is byte-identical on x64 and arm64."
+          else
+            echo "FAIL: managed encoder output differs across architectures (see diff above)."
+            exit 1
+          fi

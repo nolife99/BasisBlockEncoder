@@ -1,26 +1,18 @@
-# BasisBlockEncoder
+# BasisBlockEncoder — managed BCn texture compression
 
-Fast **CPU** block compressor for GPU texture formats (**BC1, BC3, BC4, BC5, BC6H, BC7**) exposed
-to .NET through a safe, allocation-free, span-based API with single-block and **streaming (banded)**
-entry points.
+**A pure-C# CPU block compressor for BC1, BC3, BC4, BC5, BC6H, and BC7 — no native dependency, the same bytes on every CPU architecture, and the same API as the native-backed `BasisBlockEncoder` package.**
 
-It wraps the analytical real-time block encoders that ship inside
-[Binomial's basis_universal](https://github.com/BinomialLLC/basis_universal) transcoder
-(`bc7f` / `encode_bc1` / `encode_bc4` / `fast_encode_bc6h`).
+![License: MIT](https://img.shields.io/badge/license-MIT-blue) ![.NET](https://img.shields.io/badge/.NET-8.0%20%7C%2010.0-512BD4) ![native deps](https://img.shields.io/badge/native%20deps-none-success) ![unsafe](https://img.shields.io/badge/unsafe-none-success)
 
-## Formats
+Swap one package reference and your texture pipeline stops shipping a native `.dll` / `.so` / `.dylib` for every platform you support. Everything runs in managed code: span-based, allocation-free on the hot path, and SIMD-accelerated through `System.Runtime.Intrinsics` (AVX-512, AVX2, ARM NEON) with a scalar fallback everywhere else.
 
-| Format | Bytes / 4×4 block | Input            | Notes                                   |
-|--------|-------------------|------------------|-----------------------------------------|
-| BC1    | 8                 | RGBA8            | RGB (+1-bit alpha)                      |
-| BC3    | 16                | RGBA8            | BC4 alpha block + BC1 color block       |
-| BC4    | 8                 | RGBA8 (1 chan)   | Single channel (default R)              |
-| BC5    | 16                | RGBA8 (2 chan)   | Two channels (default R,G)              |
-| BC6H   | 16                | RGB FP16         | Unsigned HDR                            |
-| BC7    | 16                | RGBA8            | High quality RGBA                       |
+## Why this package
 
-Surfaces whose width/height are not multiples of 4 are fine — partial edge blocks replicate the last
-valid row/column, so you never have to pad the source yourself.
+- **One assembly, every platform.** No P/Invoke, no native build step, no runtime-identifier matrix — a single `BasisBlockEncoder.dll` that trimming and Native AOT can see straight through.
+- **Bit-for-bit deterministic across architectures.** The same input yields the same output bytes on x86 and ARM, regardless of SIMD width — and CI proves it, re-encoding a fixed corpus on both and asserting the bytes match exactly. Reproducible builds, stable content hashes, and golden-image tests simply hold. Most SIMD encoders can't promise this; they drift by a rounding bit between vector widths or instruction sets.
+- **Reference-grade quality.** BC4/BC5 are byte-exact against the C++ reference and provably optimal; BC6H meets or exceeds its PSNR; BC7 reproduces the reference's mode decisions with PSNR within a rounding step. A `verify` tool substantiates parity on *your* assets, not a synthetic benchmark.
+- **Drop-in API.** Same type names, same enum values, same method shapes as the native-backed package. For most callers, migration is a one-line change.
+- **Allocation-free and span-first.** The per-block path allocates nothing (0 B), so it won't churn the GC inside a tight encode loop.
 
 ## Install
 
@@ -28,109 +20,89 @@ valid row/column, so you never have to pad the source yourself.
 dotnet add package BasisBlockEncoder
 ```
 
-The package contains the managed assembly plus native runtimes for `win-x64`, `win-x86`,
-`linux-x64`, `linux-arm`, `linux-arm64`, `osx-x64`, and `osx-arm64` under `runtimes/<rid>/native/`;
+Targets **net8.0** and **net10.0**. No third-party runtime dependencies.
 
-## Usage
+## Quick start
 
 ```csharp
 using BasisBlockEncoder;
 
-int width = 256, height = 256;
-ReadOnlySpan<byte> rgba = /* width*height*4 bytes, R,G,B,A */;
+// RGBA8 image, tightly packed (strideBytes = width * 4) -> BC7.
+int width = 1024, height = 1024;
+byte[] rgba = LoadRgba8(width, height);
 
-// --- whole surface ---
-var bc7 = new byte[BlockEncoder.EncodedSize(BcFormat.Bc7, width, height)];
-BlockEncoder.EncodeBc7(rgba, width, height, strideBytes: width * 4, bc7, Bc7Flags.Default);
-
-// other formats
-BlockEncoder.EncodeBc1(rgba, width, height, width * 4, bc1Dst);
-BlockEncoder.EncodeBc3(rgba, width, height, width * 4, bc3Dst);
-BlockEncoder.EncodeBc4(rgba, width, height, width * 4, bc4Dst, channel: 0);
-BlockEncoder.EncodeBc5(rgba, width, height, width * 4, bc5Dst, channel0: 0, channel1: 1);
+byte[] dst = new byte[BlockEncoder.EncodedSize(BcFormat.Bc7, width, height)];
+BlockEncoder.EncodeBc7(rgba, width, height, width * 4, dst);   // defaults to Bc7Flags.Default
 ```
 
-### Streaming a surface in bands
-
-Encode without ever holding the whole image. Feed rows as they become available (each band a
-multiple of 4 rows; the final band may be any remaining count):
+Choose a preset, or any other format:
 
 ```csharp
-var dst = new byte[BlockEncoder.EncodedSize(BcFormat.Bc7, width, height)];
-var writer = new BlockRowStreamWriter(BcFormat.Bc7, width, height, dst, (uint)Bc7Flags.Default);
-
-while (!writer.IsComplete)
-{
-    int rows = Math.Min(64, writer.PixelRowsRemaining); // 64 == 16 block-rows
-    ReadOnlySpan<byte> band = ProduceRows(rows);        // your row source
-    writer.WriteRows(band, rows, strideBytes: width * 4);
-}
+BlockEncoder.EncodeBc7(rgba, w, h, w * 4, dst, Bc7Flags.Fast);            // faster, slightly lower quality
+BlockEncoder.EncodeBc1(rgba, w, h, w * 4, dst, Bc1Quality.HighQuality);   // RGB (+1-bit alpha)
+BlockEncoder.EncodeBc3(rgba, w, h, w * 4, dst);                           // RGBA: BC4 alpha + BC1 color
+BlockEncoder.EncodeBc4(rgba, w, h, w * 4, dst, channel: 0);              // single channel (R)
+BlockEncoder.EncodeBc5(rgba, w, h, w * 4, dst, channel0: 0, channel1: 1); // two channels (RG) — normal maps
 ```
 
-You can also drive the band encoder directly with `BlockEncoder.EncodeRows(...)`, or encode one
-tight 4×4 block at a time with `BlockEncoder.EncodeBlock(...)`.
-
-### BC6H (HDR)
-
-BC6H takes RGB half-float. Pass `Half` (reinterpreted to FP16 bits) or raw `ushort` bits:
+HDR (BC6H) takes RGB half-floats:
 
 ```csharp
-ReadOnlySpan<Half> rgbHalf = /* width*height*3 Half values, R,G,B */;
-var bc6h = new byte[BlockEncoder.EncodedSize(BcFormat.Bc6h, width, height)];
-BlockEncoder.EncodeBc6h(rgbHalf, width, height, strideBytes: width * 3 * sizeof(ushort), bc6h,
-                        Bc6hQuality.Default);
-
-// streaming HDR
-var hdrWriter = new Bc6hBlockRowStreamWriter(width, height, bc6h);
-hdrWriter.WriteRows(bandHalf, rows, width * 3 * sizeof(ushort));
+ReadOnlySpan<Half> rgbHalf = /* width * height * 3 Half values */;
+byte[] dst = new byte[BlockEncoder.EncodedSize(BcFormat.Bc6h, w, h)];
+BlockEncoder.EncodeBc6h(rgbHalf, w, h, w * 3 * sizeof(ushort), dst, Bc6hQuality.Default);
 ```
 
-### Quality knobs
+Prefer to drive it generically? `Encode` dispatches by format:
 
-- **BC7**: `Bc7Flags` — `Fastest`, `Faster`, `Fast`, `Default`, `HighQuality` (or compose individual
-  mode flags). Passing `0`/`None` selects `Default`.
-- **BC1 / BC3**: `Bc1Quality` — `Fast` or `HighQuality`.
-- **BC6H**: `Bc6hQuality` — `Fast`, `Default`, `HighQuality`.
-
-## Building the native library
-
-The CMake project fetches basis_universal at a **pinned commit** and compiles one translation unit
-from its transcoder together with the shim.
-
-```
-cmake -S native -B native/build -DCMAKE_BUILD_TYPE=Release
-cmake --build native/build --config Release --parallel
+```csharp
+BlockEncoder.Encode(BcFormat.Bc7, rgba, w, h, w * 4, dst, flags: (uint)Bc7Flags.Default);
 ```
 
-Output: `basis_block_encoder.dll` / `libbasis_block_encoder.so` / `libbasis_block_encoder.dylib`.
+## Supported formats
 
-The default build is fully optimized: the `Release` configuration applies `-O3` / `/O2` and
-`-DNDEBUG`,
-link-time optimization (LTO/IPO) is enabled across the shim and transcoder, and 32-bit x86 builds
-get SSE2 codegen. (basis_universal also has an experimental SSE4.1 bc7f path, but it is hard-disabled
-upstream and not toggleable from the build, so the tested scalar path is used.)
+| Format | Input | Block size | Notes |
+|---|---|---|---|
+| **BC1** | RGBA8 | 8 B | RGB + 1-bit alpha; always 4-color (GPU-safe) — never 3-color/punch-through |
+| **BC3** | RGBA8 | 16 B | BC4 alpha + BC1 color |
+| **BC4** | 1 channel | 8 B | Byte-exact vs the reference; provably optimal |
+| **BC5** | 2 channels | 16 B | Two BC4 halves — ideal for tangent-space normal maps |
+| **BC6H** | RGB FP16 | 16 B | Unsigned HDR |
+| **BC7** | RGBA8 | 16 B | Highest-quality LDR; analytical mode search |
 
-Useful CMake options:
+BC2 is intentionally omitted, matching the native package.
 
-- `-DBBE_NATIVE_ARCH=ON` — tune for the building machine's CPU (`-march=native`). Faster, but the
-  resulting binary is **not** portable.
-- `-DBASISU_GIT_TAG=<commit>` — build against a different basis_universal revision.
-- `-DBASISU_SOURCE_DIR=/path/to/basis_universal` — use a local checkout / submodule instead of fetching.
+## Quality and determinism
 
-For local end-to-end testing, point the loader at the freshly built library, e.g. on Linux:
+Two guarantees, and how to check them yourself:
 
-```
-LD_LIBRARY_PATH="$PWD/native/build" dotnet test tests/BasisBlockEncoder.Tests/BasisBlockEncoder.Tests.csproj
-```
+- **Cross-architecture byte-identity.** Output is independent of CPU and SIMD width: scalar, AVX2, AVX-512, and NEON all produce the same bytes. The integer/associative math is identical by construction, and a CI golden gate re-encodes a fixed corpus on x86 and ARM and asserts an exact match.
+- **Reference-grade quality.** The encoder doesn't chase byte-identity with the native encoder at the higher BC7 presets — it shouldn't need to. It tracks *quality* instead: BC4/BC5 bit-exact and optimal, BC6H at or above the reference's PSNR, BC7 matching the reference's mode choices with PSNR within a rounding step. The `verify` tool reports per-format PSNR (managed vs reference) on the textures you actually ship.
 
-## A note on the pinned dependency
+## Performance
 
-The encoder functions this library calls (`bc7f::fast_pack_bc7_auto_rgba`, `encode_bc1`,
-`encode_bc4`, `astc_6x6_hdr::fast_encode_bc6h`) are **internal** basis_universal APIs and may change
-between revisions. Bump `BASISU_GIT_TAG` deliberately and re-test when
-updating.
+This is a real-time *analytical* encoder: it computes each block's best fit directly rather than brute-forcing the mode space, and it vectorizes that math with a width-adaptive path — AVX-512 → AVX2 → NEON → scalar — selected at JIT time behind hardware-acceleration guards. The per-block path is allocation-free.
+
+Each block is encoded on a single thread by design, but blocks are independent: fan the per-block calls across cores (for example, `Parallel.For` over block rows) and throughput scales with them. The source repository ships a BenchmarkDotNet suite so you can measure managed-vs-native on your own hardware and assets — the only numbers worth trusting.
+
+## Quality knobs
+
+- **`Bc7Flags`** — `Fastest`, `Faster`, `Fast`, `Default` (recommended), `HighQuality`. Higher presets enable more mode families (two-/three-subset, dual-plane) and p-bit optimization; `HighQuality` runs the full analytical search. The optional non-analytical brute-force passes are accepted for source compatibility but not performed — the analytical search is what delivers the quality.
+- **`Bc1Quality`** — `Fast` or `HighQuality`, for the BC1/BC3 color block.
+- **`Bc6hQuality`** — `Fast`, `Default`, `HighQuality`.
+
+## Streaming
+
+Encode in horizontal bands instead of materializing the whole surface: `EncodeRows` / `EncodeBc6hRows` (bands must be a multiple of 4 rows, except the last), or the `BlockRowStreamWriter` / `Bc6hBlockRowStreamWriter` helpers.
+
+## Migrating from the native-backed package
+
+The public surface mirrors the original 1:1 — the same `BlockEncoder` methods and the same `BcFormat` / `Bc1Quality` / `Bc6hQuality` / `Bc7Flags` names and numeric values. Replace the package reference; `BlockEncoder.Initialize()` stays as a no-op for compatibility. Output is quality-equivalent rather than byte-identical at the higher BC7 presets, so if you pin golden *bytes* against the native encoder, regenerate them — or pin against PSNR instead.
+
+## Requirements
+
+.NET 8 or .NET 10. No native dependencies, and no `unsafe` code (`AllowUnsafeBlocks` is off).
 
 ## License
 
-This wrapper is licensed under the [MIT License](LICENSE). It builds against basis_universal, which
-is Apache-2.0; see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+This package is **MIT**. The encoder is a managed port of [Basis Universal](https://github.com/BinomialLLC/basis_universal)'s block encoders — retain the **Apache-2.0** Basis Universal attribution/NOTICE when you redistribute.

@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <Optimize>true</Optimize>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <AssemblyName>Bcn.Bench</AssemblyName>
+    <RootNamespace>Bcn.Bench</RootNamespace>
+    <!-- BenchmarkDotNet refuses to run on a Debug build; always use -c Release. -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Managed encoder under test. -->
+    <ProjectReference Include="..\Bcn\Bcn.csproj" />
+    <!-- Native reference encoder (basis_universal's bbe shim): the "native" side of the comparison and the
+         assemblies kept on hand for benchmarking. Restored from nuget.org (or the bundled ./localpackages
+         feed via the repo nuget.config). The managed drop-in package does NOT depend on this. -->
+    <PackageReference Include="BasisBlockEncoder" Version="0.2.1" />
+    <!-- Timing harness + pure-managed (deterministic) image decoding for whole-image artwork loading. -->
+    <PackageReference Include="BenchmarkDotNet" Version="0.14.0" />
+    <PackageReference Include="StbImageSharp" Version="2.27.13" />
+  </ItemGroup>
+
+</Project>

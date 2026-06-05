@@ -1,0 +1,16 @@
+Drop image files here for the benchmark / verify / golden tooling (Bcn.Bench).
+
+WHOLE IMAGES, NATIVE RESOLUTION. There is no size parameter: each file is encoded as-is, cropped only
+to a multiple of 4 pixels so the 4x4 block grid tiles exactly. Larger images simply take longer.
+
+  * LDR formats (BC1, BC2, BC3, BC4, BC5, BC7): .png .jpg .jpeg .bmp .tga .gif .psd
+        Decoded to RGBA8 by StbImageSharp (pure-managed, integer -> bit-identical across architectures).
+  * BC6H (HDR): .hdr  (Radiance RGBE)
+        Decoded to RGB float by StbImageSharp, then to FP16.
+
+Each file name becomes a BenchmarkDotNet parameter, so you can target one with e.g. --filter '*mytexture*'.
+With this folder empty, a small set of procedural textures stands in so CI still runs.
+
+These files are NOT committed by default (see .gitignore). The cross-platform byte-identity gate (golden)
+uses only gate-safe inputs — the integer-decoded artworks here and the integer/LCG synthetic surfaces — so
+its result is reproducible bit-for-bit on x64 and arm64.

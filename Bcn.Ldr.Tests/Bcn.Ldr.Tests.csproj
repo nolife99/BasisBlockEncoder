@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Self-contained correctness gate for the BC1/3/4/5 codecs (no native dependency): tier
+       byte-identity, BC4 closest-of-8 optimality, BC5 = two BC4, BC1 4-color-always + monotonicity,
+       BC3 composition, and round-trip PSNR. Native-PSNR-vs-target parity lives in Bcn.Bench's verify
+       (BasisBlockEncoder), like BC7. Exit code is nonzero if any check fails. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>Bcn.Ldr.Tests</AssemblyName>
+    <RootNamespace>Bcn</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Bcn\Bcn.csproj" />
+  </ItemGroup>
+  <!-- Optional image decoding for the `mb` artwork-dir option. Off by default so the project builds without
+       a NuGet restore; enable with -p:EnableImageSharp=true. ImageSharp 2.x is Apache-2.0 (3.x is not). -->
+  <PropertyGroup Condition="'$(EnableImageSharp)' == 'true'">
+    <DefineConstants>$(DefineConstants);IMAGESHARP</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(EnableImageSharp)' == 'true'">
+    <PackageReference Include="SixLabors.ImageSharp" Version="[2.1.0,3.0.0)" />
+  </ItemGroup>
+</Project>

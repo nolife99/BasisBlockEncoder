@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- net7.0 = floor (the cross-platform Vector128/256 static API shipped in .NET 7). Vector512/AVX-512
+         is #if NET8_0_OR_GREATER; the AvxVnni SSD path is #if NET9_0_OR_GREATER. net7.0 builds run the
+         AVX2 / NEON tiers and are byte-identical to the higher targets. -->
+    <TargetFrameworks>net7.0;net8.0;net9.0;net10.0</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <Optimize>true</Optimize>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>Bcn</AssemblyName>
+    <RootNamespace>Bcn</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Bcn.Ldr.Tests" />
+    <InternalsVisibleTo Include="Bcn.Bench" />
+  </ItemGroup>
+</Project>

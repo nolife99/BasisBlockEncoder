@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Ships net8.0 (the original package's TFM) and net10.0. Sandbox packs net10.0 only
+         because that is the only targeting pack available offline. -->
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <Optimize>true</Optimize>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <AssemblyName>BasisBlockEncoder</AssemblyName>
+    <RootNamespace>BasisBlockEncoder</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Engine sources are compiled in and not all carry XML docs; don't fail the build over CS1591. -->
+    <NoWarn>$(NoWarn);CS1591;CS0649;CA2014</NoWarn>
+
+    <!-- NuGet package metadata: a managed drop-in for the native-backed BasisBlockEncoder. -->
+    <PackageId>BasisBlockEncoder</PackageId>
+    <Version>0.2.1</Version>
+    <Authors>BasisBlockEncoder contributors</Authors>
+    <Description>Managed (pure C#) drop-in replacement for BasisBlockEncoder: identical public API for BC1/BC3/BC4/BC5/BC6H/BC7 CPU block compression, with no native dependency. SIMD-accelerated via System.Runtime.Intrinsics with scalar fallback; allocation-free, span-based.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>bc7;bc1;bc3;bc4;bc5;bc6h;texture;compression;dxt;bcn;gpu;basisu;encoder;managed;simd</PackageTags>
+    <IncludeSymbols>false</IncludeSymbols>
+  </PropertyGroup>
+
+  <!-- Compile the managed engine sources straight into this assembly: a single self-contained
+       BasisBlockEncoder.dll with no native runtime and no external package dependency. This is a
+       <Compile Include>, NOT a ProjectReference, precisely so the engine is bundled, not referenced. -->
+  <ItemGroup>
+    <Compile Include="..\Bcn\**\*.cs" Exclude="..\Bcn\bin\**\*.cs;..\Bcn\obj\**\*.cs" />
+  </ItemGroup>
+
+  <!-- The repository README doubles as the NuGet package landing page. -->
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>
