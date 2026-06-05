@@ -16,7 +16,7 @@
     <Description>Managed (pure C#) drop-in replacement for BasisBlockEncoder: identical public API for BC1/BC3/BC4/BC5/BC6H/BC7 CPU block compression, with no native dependency. SIMD-accelerated via System.Runtime.Intrinsics with scalar fallback; allocation-free, span-based.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <RepositoryUrl>https://github.com</RepositoryUrl>
+    <RepositoryUrl>https://github.com/nolife99/BasisBlockEncoder</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>bc7;bc1;bc3;bc4;bc5;bc6h;texture;compression;dxt;bcn;gpu;basisu;encoder;managed;simd</PackageTags>
     <IncludeSymbols>false</IncludeSymbols>
