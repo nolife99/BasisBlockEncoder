@@ -45,27 +45,32 @@ jobs:
         run: dotnet run --project Bcn.Ldr.Tests -c Release
 
       - name: Unit tests — BC7 eigenvalue bound
-        run: dotnet run --project Bcn.Ldr.Tests -c Release --no-build -- eig
+        run: dotnet run --project Bcn.Ldr.Tests -c Release -- eig
 
       - name: Unit tests — BC7 mode-6 prune invariance
-        run: dotnet run --project Bcn.Ldr.Tests -c Release --no-build -- prune
+        run: dotnet run --project Bcn.Ldr.Tests -c Release -- prune
 
       - name: Unit tests — BC6H oracle + image round-trip
         run: |
           set -euo pipefail
-          dotnet run --project Bcn.Ldr.Tests -c Release --no-build -- bc6h
-          dotnet run --project Bcn.Ldr.Tests -c Release --no-build -- bc6himg | tee bc6himg.log
+          # The unit project has no native dependency; stage the reference library from the bundled native
+          # package so the managed-vs-native BC6H oracle can run here. If it isn't found, the oracle skips
+          # (the authoritative managed-vs-native BC6H parity also runs in the "Quality parity vs native" job).
+          rid=$([ "${{ matrix.arch }}" = "arm64" ] && echo linux-arm64 || echo linux-x64)
+          unzip -oq localpackages/BasisBlockEncoder.*.nupkg "runtimes/$rid/native/*" -d "$RUNNER_TEMP/natlib" || true
+          so="$RUNNER_TEMP/natlib/runtimes/$rid/native/libbasis_block_encoder.so"
+          if [ -f "$so" ]; then export BBE_NATIVE_LIB="$so"; echo "BC6H oracle using native lib: $so"; fi
+          dotnet run --project Bcn.Ldr.Tests -c Release -- bc6h
+          dotnet run --project Bcn.Ldr.Tests -c Release -- bc6himg | tee bc6himg.log
           if grep -qE "[1-9][0-9]*[[:space:]]+mismatched bytes" bc6himg.log; then
             echo "::error::BC6H image round-trip reported byte mismatches"; exit 1
           fi
 
-      # ---- managed-vs-native quality parity (non-zero if any format trails native by > 0.75 dB) ----
       - name: Quality parity vs native
         run: dotnet run --project Bcn.Bench -c Release -- verify
 
-      # ---- per-architecture byte-identity digest for the cross-platform gate ----
       - name: Write golden digest
-        run: dotnet run --project Bcn.Bench -c Release --no-build -- golden-write "golden-${{ matrix.arch }}.txt"
+        run: dotnet run --project Bcn.Bench -c Release -- golden-write "golden-${{ matrix.arch }}.txt"
 
       - uses: actions/upload-artifact@v4
         with:

@@ -1,5 +1,3 @@
-// For each synthetic HDR block, encode with both, decode with the managed decoder,
-// and report 1/luma^2-weighted (relative) PSNR + peak PSNR per quality tier.
 using System;
 using System.Runtime.InteropServices;
 using Bcn.Hdr;
@@ -7,15 +5,20 @@ using Bcn.Hdr;
 internal static class Bc6hOracleTest
 {
     const string Lib = "basis_block_encoder";
-    const string SoPath = "/home/claude/bbe_pkg/runtimes/linux-x64/native/libbasis_block_encoder.so";
 
     [DllImport(Lib)] static extern int bbe_init();
     [DllImport(Lib)] static extern int bbe_encode_bc6h_block(ushort[] blockRgbHalf48, byte[] dst, uint quality);
 
     static Bc6hOracleTest()
     {
-        NativeLibrary.SetDllImportResolver(typeof(Bc6hOracleTest).Assembly,
-            (name, asm, path) => name == Lib ? NativeLibrary.Load(SoPath) : IntPtr.Zero);
+        NativeLibrary.SetDllImportResolver(typeof(Bc6hOracleTest).Assembly, static (name, asm, path) =>
+        {
+            if (name != Lib) return IntPtr.Zero;
+            IntPtr h;
+            var env = Environment.GetEnvironmentVariable("BBE_NATIVE_LIB");
+            if (!string.IsNullOrEmpty(env) && NativeLibrary.TryLoad(env, out h)) return h;
+            return NativeLibrary.TryLoad(Lib, asm, path, out h) ? h : IntPtr.Zero;
+        });
     }
 
     static float HF(ushort bits) => (float)BitConverter.UInt16BitsToHalf(bits);
@@ -73,7 +76,18 @@ internal static class Bc6hOracleTest
 
     internal static void Run()
     {
-        int rc = bbe_init();
+        int rc;
+        try
+        {
+            rc = bbe_init();
+        }
+        catch (DllNotFoundException)
+        {
+            Console.WriteLine("BC6H oracle: native reference library 'basis_block_encoder' not found — skipping the native comparison.");
+            Console.WriteLine("  (Set BBE_NATIVE_LIB, or put the library on the loader path, to enable it. Managed-vs-native BC6H");
+            Console.WriteLine("   parity is covered by Bcn.Bench 'verify'; the managed image round-trip is covered by 'bc6himg'.)");
+            return;
+        }
         Console.WriteLine($"BC6H encoder vs oracle  (bbe_init -> {rc})  [N=4096 mixed blocks/tier]");
 
         const int N = 4096;
