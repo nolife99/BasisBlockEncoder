@@ -11,9 +11,10 @@
 //
 // Layout: src/dst are RGB half-float *bit patterns*, 3 ushorts per pixel, row-major, `rowStride` ushorts per
 // row (>= width*3). Output is 16 bytes per block, block-row-major; ByteCount(width,height) gives the size.
-using System;
 
 namespace Bcn.Hdr;
+
+using System;
 
 public static class Bc6hImage
 {
@@ -24,27 +25,37 @@ public static class Bc6hImage
     public static int ByteCount(int width, int height) => BlockCount(width, height) * 16;
 
     /// <summary>Encode a whole RGB-half-float surface to packed BC6H blocks (block-row-major).</summary>
-    public static void Encode(scoped ReadOnlySpan<ushort> src, int width, int height, int rowStride,
-        scoped Span<byte> output, Bc6hQuality quality = Bc6hQuality.Default)
+    public static void Encode(scoped ReadOnlySpan<ushort> src,
+        int width,
+        int height,
+        int rowStride,
+        scoped Span<byte> output,
+        Bc6hQuality quality = Bc6hQuality.Default)
         => EncodeBand(src, width, height, rowStride, 0, (height + 3) / 4, output, quality);
 
     /// <summary>
-    /// Encode block-rows [blockRowStart, blockRowStart+blockRowCount) into <paramref name="output"/>, which
-    /// holds exactly those block-rows (blockRowCount * ceil(width/4) * 16 bytes). src/height describe the full
-    /// image so edge clamping is correct regardless of band. Bands are independent — safe to run concurrently.
+    ///     Encode block-rows [blockRowStart, blockRowStart+blockRowCount) into <paramref name="output" />, which
+    ///     holds exactly those block-rows (blockRowCount * ceil(width/4) * 16 bytes). src/height describe the full
+    ///     image so edge clamping is correct regardless of band. Bands are independent — safe to run concurrently.
     /// </summary>
-    public static void EncodeBand(scoped ReadOnlySpan<ushort> src, int width, int height, int rowStride,
-        int blockRowStart, int blockRowCount, scoped Span<byte> output, Bc6hQuality quality = Bc6hQuality.Default)
+    public static void EncodeBand(scoped ReadOnlySpan<ushort> src,
+        int width,
+        int height,
+        int rowStride,
+        int blockRowStart,
+        int blockRowCount,
+        scoped Span<byte> output,
+        Bc6hQuality quality = Bc6hQuality.Default)
     {
-        int bw = (width + 3) / 4;
+        var bw = (width + 3) / 4;
         Span<ushort> tile = stackalloc ushort[48];
-        int o = 0;
-        for (int by = blockRowStart; by < blockRowStart + blockRowCount; by++)
-            for (int bx = 0; bx < bw; bx++, o += 16)
-            {
-                ExtractBlock(src, width, height, rowStride, bx, by, tile);
-                Bc6hEncoder.EncodeBlock(tile, output.Slice(o, 16), quality);
-            }
+        var o = 0;
+        for (var by = blockRowStart; by < blockRowStart + blockRowCount; by++)
+        for (var bx = 0; bx < bw; bx++, o += 16)
+        {
+            ExtractBlock(src, width, height, rowStride, bx, by, tile);
+            Bc6hEncoder.EncodeBlock(tile, output.Slice(o, 16), quality);
+        }
     }
 
     /// <summary>Decode packed BC6H blocks back to an RGB-half-float surface (block-row-major).</summary>
@@ -52,50 +63,75 @@ public static class Bc6hImage
         => DecodeBand(blocks, width, height, rowStride, 0, (height + 3) / 4, dst);
 
     /// <summary>Decode block-rows [blockRowStart, blockRowStart+blockRowCount) from a band's blocks into dst.</summary>
-    public static void DecodeBand(scoped ReadOnlySpan<byte> blocks, int width, int height, int rowStride,
-        int blockRowStart, int blockRowCount, scoped Span<ushort> dst)
+    public static void DecodeBand(scoped ReadOnlySpan<byte> blocks,
+        int width,
+        int height,
+        int rowStride,
+        int blockRowStart,
+        int blockRowCount,
+        scoped Span<ushort> dst)
     {
-        int bw = (width + 3) / 4;
+        var bw = (width + 3) / 4;
         Span<ushort> tile = stackalloc ushort[48];
-        int o = 0;
-        for (int by = blockRowStart; by < blockRowStart + blockRowCount; by++)
-            for (int bx = 0; bx < bw; bx++, o += 16)
-            {
-                Bc6hDecoder.DecodeBlock(blocks.Slice(o, 16), tile);
-                ScatterBlock(tile, width, height, rowStride, bx, by, dst);
-            }
+        var o = 0;
+        for (var by = blockRowStart; by < blockRowStart + blockRowCount; by++)
+        for (var bx = 0; bx < bw; bx++, o += 16)
+        {
+            Bc6hDecoder.DecodeBlock(blocks.Slice(o, 16), tile);
+            ScatterBlock(tile, width, height, rowStride, bx, by, dst);
+        }
     }
 
     // Gather one 4x4 block into row-major texel order, clamping to the edge (replicating last row/column).
-    private static void ExtractBlock(scoped ReadOnlySpan<ushort> src, int width, int height, int rowStride,
-        int bx, int by, scoped Span<ushort> tile)
+    static void ExtractBlock(scoped ReadOnlySpan<ushort> src,
+        int width,
+        int height,
+        int rowStride,
+        int bx,
+        int by,
+        scoped Span<ushort> tile)
     {
-        for (int ty = 0; ty < 4; ty++)
+        for (var ty = 0; ty < 4; ty++)
         {
-            int sy = by * 4 + ty; if (sy >= height) sy = height - 1;
-            int rb = sy * rowStride;
-            for (int tx = 0; tx < 4; tx++)
+            var sy = by * 4 + ty;
+            if (sy >= height) sy = height - 1;
+            var rb = sy * rowStride;
+            for (var tx = 0; tx < 4; tx++)
             {
-                int sx = bx * 4 + tx; if (sx >= width) sx = width - 1;
+                var sx = bx * 4 + tx;
+                if (sx >= width) sx = width - 1;
                 int s = rb + sx * 3, t = (ty * 4 + tx) * 3;
-                tile[t] = src[s]; tile[t + 1] = src[s + 1]; tile[t + 2] = src[s + 2];
+                tile[t] = src[s];
+                tile[t + 1] = src[s + 1];
+                tile[t + 2] = src[s + 2];
             }
         }
     }
 
     // Write a decoded 4x4 block into dst, skipping texels outside the image (partial edge blocks).
-    private static void ScatterBlock(scoped ReadOnlySpan<ushort> tile, int width, int height, int rowStride,
-        int bx, int by, scoped Span<ushort> dst)
+    static void ScatterBlock(scoped ReadOnlySpan<ushort> tile,
+        int width,
+        int height,
+        int rowStride,
+        int bx,
+        int by,
+        scoped Span<ushort> dst)
     {
-        for (int ty = 0; ty < 4; ty++)
+        for (var ty = 0; ty < 4; ty++)
         {
-            int dy = by * 4 + ty; if (dy >= height) break;
-            int rb = dy * rowStride;
-            for (int tx = 0; tx < 4; tx++)
+            var dy = by * 4 + ty;
+            if (dy >= height) break;
+
+            var rb = dy * rowStride;
+            for (var tx = 0; tx < 4; tx++)
             {
-                int dx = bx * 4 + tx; if (dx >= width) break;
+                var dx = bx * 4 + tx;
+                if (dx >= width) break;
+
                 int d = rb + dx * 3, t = (ty * 4 + tx) * 3;
-                dst[d] = tile[t]; dst[d + 1] = tile[t + 1]; dst[d + 2] = tile[t + 2];
+                dst[d] = tile[t];
+                dst[d + 1] = tile[t + 1];
+                dst[d + 2] = tile[t + 2];
             }
         }
     }

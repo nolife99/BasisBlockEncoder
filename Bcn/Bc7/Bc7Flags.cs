@@ -1,6 +1,6 @@
-using System;
-
 namespace Bcn;
+
+using System;
 
 [Flags]
 public enum Bc7Flags : uint
@@ -16,5 +16,5 @@ public enum Bc7Flags : uint
     DefaultFast = Use2SubsetsRgb | Use2SubsetsRgba | UseDualPlaneRgba | PBitOpt | UseTrivialMode6,
 
     // Matches bc7f's cPackBC7FlagDefault (all analytical modes; no partially/non-analytical re-check passes).
-    Default = Use2SubsetsRgb | Use2SubsetsRgba | Use3SubsetsRgb | UseDualPlaneRgb | UseDualPlaneRgba | PBitOpt | PBitOptMode6 | UseTrivialMode6,
+    Default = Use2SubsetsRgb | Use2SubsetsRgba | Use3SubsetsRgb | UseDualPlaneRgb | UseDualPlaneRgba | PBitOpt | PBitOptMode6 | UseTrivialMode6
 }

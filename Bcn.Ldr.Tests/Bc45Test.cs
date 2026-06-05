@@ -116,7 +116,7 @@ internal static class Bc45Test
             {
                 for (int b = 0; b < 8; b++) { Gen(t * 8 + b, px); px.CopyTo(px8.Slice(b * 16, 16)); }
                 int ch = t & 3;
-                Bc4Block.EncodeAlpha8(px8, o8, ch, 8, 0);
+                Bc4Block.EncodeAlphaBatch(px8, o8, ch, 8, 0);
                 for (int b = 0; b < 8; b++)
                 {
                     Bc4Block.Encode(px8.Slice(b * 16, 16), r8, ch);
