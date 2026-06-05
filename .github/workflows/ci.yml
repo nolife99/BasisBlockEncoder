@@ -42,7 +42,7 @@ jobs:
         run: dotnet build Bcn.sln -c Release
 
       - name: Unit tests — LDR codecs + SIMD tier identity
-        run: dotnet run --project Bcn.Ldr.Tests -c Release --no-build
+        run: dotnet run --project Bcn.Ldr.Tests -c Release
 
       - name: Unit tests — BC7 eigenvalue bound
         run: dotnet run --project Bcn.Ldr.Tests -c Release --no-build -- eig
@@ -61,7 +61,7 @@ jobs:
 
       # ---- managed-vs-native quality parity (non-zero if any format trails native by > 0.75 dB) ----
       - name: Quality parity vs native
-        run: dotnet run --project Bcn.Bench -c Release --no-build -- verify
+        run: dotnet run --project Bcn.Bench -c Release -- verify
 
       # ---- per-architecture byte-identity digest for the cross-platform gate ----
       - name: Write golden digest
