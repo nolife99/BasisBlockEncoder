@@ -1,0 +1,58 @@
+name: bench
+
+on:
+  workflow_dispatch:
+    inputs:
+      filter:
+        description: 'BenchmarkDotNet --filter glob (e.g. *Bc7* or *)'
+        default: '*'
+        required: false
+      job:
+        description: 'BenchmarkDotNet job (dry / short / medium / default)'
+        default: 'short'
+        required: false
+  # schedule:
+  #   - cron: '0 6 * * 1'   # Mondays 06:00 UTC; scheduled runs use the defaults below (filter=*, job=short)
+
+jobs:
+  benchmark:
+    name: benchmark (${{ matrix.arch }})
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { arch: x64,   runs-on: ubuntu-24.04 }
+          - { arch: arm64, runs-on: ubuntu-24.04-arm }
+    runs-on: ${{ matrix.runs-on }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # Optional real-asset corpus. Set repository variables ARTWORKS_URL and ARTWORKS_SHA256 to a fixed,
+      # checksummed tar archive (images at the archive root). Unset -> the suite uses procedural textures.
+      - name: Fetch test artworks (optional)
+        if: ${{ vars.ARTWORKS_URL != '' }}
+        run: |
+          set -euo pipefail
+          curl -fsSL -o artworks.tar "${{ vars.ARTWORKS_URL }}"
+          echo "${{ vars.ARTWORKS_SHA256 }}  artworks.tar" | sha256sum -c -
+          mkdir -p artworks
+          tar -xaf artworks.tar -C artworks
+          echo "Artworks present:"; ls -1 artworks
+
+      - name: Run BenchmarkDotNet
+        run: >
+          dotnet run --project Bcn.Bench -c Release --
+          bench
+          --filter "${{ github.event.inputs.filter || '*' }}"
+          --job "${{ github.event.inputs.job || 'short' }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results-${{ matrix.arch }}
+          path: BenchmarkDotNet.Artifacts/results/**
+          if-no-files-found: warn

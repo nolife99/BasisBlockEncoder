@@ -1,0 +1,97 @@
+name: ci
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: build & test (${{ matrix.arch }})
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { arch: x64,   runs-on: ubuntu-24.04 }
+          - { arch: arm64, runs-on: ubuntu-24.04-arm }
+    runs-on: ${{ matrix.runs-on }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Fetch test artworks (optional)
+        if: ${{ vars.ARTWORKS_URL != '' }}
+        run: |
+          set -euo pipefail
+          curl -fsSL -o artworks.tar "${{ vars.ARTWORKS_URL }}"
+          echo "${{ vars.ARTWORKS_SHA256 }}  artworks.tar" | sha256sum -c -
+          mkdir -p artworks
+          tar -xaf artworks.tar -C artworks
+          echo "Artworks present:"; ls -1 artworks
+
+      - name: Build solution
+        run: dotnet build Bcn.sln -c Release
+
+      - name: Unit tests — LDR codecs + SIMD tier identity
+        run: dotnet run --project Bcn.Ldr.Tests -c Release --no-build
+
+      - name: Unit tests — BC7 eigenvalue bound
+        run: dotnet run --project Bcn.Ldr.Tests -c Release --no-build -- eig
+
+      - name: Unit tests — BC7 mode-6 prune invariance
+        run: dotnet run --project Bcn.Ldr.Tests -c Release --no-build -- prune
+
+      - name: Unit tests — BC6H oracle + image round-trip
+        run: |
+          set -euo pipefail
+          dotnet run --project Bcn.Ldr.Tests -c Release --no-build -- bc6h
+          dotnet run --project Bcn.Ldr.Tests -c Release --no-build -- bc6himg | tee bc6himg.log
+          if grep -qE "[1-9][0-9]*[[:space:]]+mismatched bytes" bc6himg.log; then
+            echo "::error::BC6H image round-trip reported byte mismatches"; exit 1
+          fi
+
+      # ---- managed-vs-native quality parity (non-zero if any format trails native by > 0.75 dB) ----
+      - name: Quality parity vs native
+        run: dotnet run --project Bcn.Bench -c Release --no-build -- verify
+
+      # ---- per-architecture byte-identity digest for the cross-platform gate ----
+      - name: Write golden digest
+        run: dotnet run --project Bcn.Bench -c Release --no-build -- golden-write "golden-${{ matrix.arch }}.txt"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: golden-${{ matrix.arch }}
+          path: golden-${{ matrix.arch }}.txt
+          if-no-files-found: error
+
+  cross-platform-identity:
+    name: cross-platform byte identity
+    needs: build-test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: goldens
+      - name: Assert x64 and arm64 output is byte-identical
+        run: |
+          set -euo pipefail
+          x="$(find goldens -name 'golden-x64.txt' | head -1)"
+          a="$(find goldens -name 'golden-arm64.txt' | head -1)"
+          echo "x64:   $x"
+          echo "arm64: $a"
+          # Compare everything except the header comment line.
+          if diff <(grep -v '^#' "$x") <(grep -v '^#' "$a"); then
+            echo "PASS: managed encoder output is byte-identical on x64 and arm64."
+          else
+            echo "::error::managed encoder output differs across architectures (see diff above)"; exit 1
+          fi
