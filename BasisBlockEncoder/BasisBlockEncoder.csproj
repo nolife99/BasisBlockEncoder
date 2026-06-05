@@ -11,7 +11,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591;CS0649;CA2014</NoWarn>
     <PackageId>BasisBlockEncoder</PackageId>
-    <Version>0.2.1</Version>
+    <Version>0.3.1</Version>
     <Authors>BasisBlockEncoder contributors</Authors>
     <Description>Managed (pure C#) drop-in replacement for BasisBlockEncoder: identical public API for BC1/BC3/BC4/BC5/BC6H/BC7 CPU block compression, with no native dependency. SIMD-accelerated via System.Runtime.Intrinsics with scalar fallback; allocation-free, span-based.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
