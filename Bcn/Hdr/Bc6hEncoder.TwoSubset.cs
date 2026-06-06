@@ -65,18 +65,18 @@ static partial class Bc6hEncoder
     }
 
     static void TwoSubset(
-        ReadOnlySpan<int> ir,
-        ReadOnlySpan<int> ig,
-        ReadOnlySpan<int> ib,
-        ReadOnlySpan<float> fr,
-        ReadOnlySpan<float> fg,
-        ReadOnlySpan<float> fb,
-        ReadOnlySpan<float> ps,
+        scoped ReadOnlySpan<int> ir,
+        scoped ReadOnlySpan<int> ig,
+        scoped ReadOnlySpan<int> ib,
+        scoped ReadOnlySpan<float> fr,
+        scoped ReadOnlySpan<float> fg,
+        scoped ReadOnlySpan<float> fb,
+        scoped ReadOnlySpan<float> ps,
         ref double curErr,
         ref int mode,
         ref int partition,
-        Span<int> ep,
-        Span<byte> w,
+        scoped Span<int> ep,
+        scoped Span<byte> w,
         int meanR,
         int meanG,
         int meanB,
@@ -138,18 +138,18 @@ static partial class Bc6hEncoder
     static void TwoSubsetPattern(
         int patIndex,
         uint patBits,
-        ReadOnlySpan<int> ir,
-        ReadOnlySpan<int> ig,
-        ReadOnlySpan<int> ib,
-        ReadOnlySpan<float> fr,
-        ReadOnlySpan<float> fg,
-        ReadOnlySpan<float> fb,
-        ReadOnlySpan<float> ps,
-        ref double curErr,
-        ref int mode,
-        ref int partition,
-        Span<int> ep,
-        Span<byte> w,
+        scoped ReadOnlySpan<int> ir,
+        scoped ReadOnlySpan<int> ig,
+        scoped ReadOnlySpan<int> ib,
+        scoped ReadOnlySpan<float> fr,
+        scoped ReadOnlySpan<float> fg,
+        scoped ReadOnlySpan<float> fb,
+        scoped ReadOnlySpan<float> ps,
+        scoped ref double curErr,
+        scoped ref int mode,
+        scoped ref int partition,
+        scoped Span<int> ep,
+        scoped Span<byte> w,
         int meanR,
         int meanG,
         int meanB,
@@ -392,7 +392,7 @@ static partial class Bc6hEncoder
     }
 
     // half-bits -> blog per endpoint (forward quantize), into absBlog[c*4 + s*2 + lh].
-    static void QuantEndpoints(ReadOnlySpan<int> sMin, ReadOnlySpan<int> sMax, Span<int> absBlog, int bits)
+    static void QuantEndpoints(scoped ReadOnlySpan<int> sMin, scoped ReadOnlySpan<int> sMax, scoped Span<int> absBlog, int bits)
     {
         for (var s = 0; s < 2; s++)
         for (var c = 0; c < 3; c++)
@@ -405,14 +405,14 @@ static partial class Bc6hEncoder
     // 3-bit weight assignment for 2 subsets; returns 1/luma^2-weighted error (used when computeError).
     // SIMD: per-subset 8 candidate colors are planar; argmin over 8 is branchless/vectorizable.
     static double AssignWeights3(
-        Span<byte> weights,
+        scoped Span<byte> weights,
         uint patBits,
-        ReadOnlySpan<int> sMin,
-        ReadOnlySpan<int> sMax,
-        ReadOnlySpan<float> fr,
-        ReadOnlySpan<float> fg,
-        ReadOnlySpan<float> fb,
-        ReadOnlySpan<float> ps,
+        scoped ReadOnlySpan<int> sMin,
+        scoped ReadOnlySpan<int> sMax,
+        scoped ReadOnlySpan<float> fr,
+        scoped ReadOnlySpan<float> fg,
+        scoped ReadOnlySpan<float> fb,
+        scoped ReadOnlySpan<float> ps,
         bool computeError)
     {
         Span<float> cr = stackalloc float[16], cg = stackalloc float[16], cb = stackalloc float[16]; // [s*8 + j]

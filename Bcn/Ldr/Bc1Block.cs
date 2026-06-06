@@ -25,6 +25,39 @@ public enum Bc1Quality { Fast, Default, HighQuality }
 
 static partial class Bc1Block
 {
+    // 9*(w*w), 9*((1-w)*w), 9*((1-w)*(1-w)) for w in {0,1/3,2/3,1}, packed (z00<<16)|(z10<<8)|z11.
+    static readonly uint[] WeightVals4 =
+    {
+        0x000009u, 0x010204u, 0x040201u, 0x090000u
+    };
+
+    static readonly float[] Midpoint5 =
+    {
+        .015686f, .047059f, .078431f, .111765f, .145098f, .176471f, .207843f, .241176f, .274510f, .305882f, .337255f, .370588f, .403922f, .435294f, .466667f, .5f, .533333f, .564706f, .596078f, .629412f, .662745f, .694118f, .725490f, .758824f, .792157f, .823529f, .854902f, .888235f, .921569f, .952941f, .984314f, 1e+37f
+    };
+
+    static readonly float[] Midpoint6 =
+    {
+        .007843f, .023529f, .039216f, .054902f, .070588f, .086275f, .101961f, .117647f, .133333f, .149020f, .164706f, .180392f, .196078f, .211765f, .227451f, .245098f, .262745f, .278431f, .294118f, .309804f, .325490f, .341176f, .356863f, .372549f, .388235f, .403922f, .419608f, .435294f, .450980f, .466667f, .482353f, .500000f, .517647f, .533333f,
+        .549020f, .564706f, .580392f, .596078f, .611765f, .627451f, .643137f, .658824f, .674510f, .690196f, .705882f, .721569f, .737255f, .754902f, .772549f, .788235f, .803922f, .819608f, .835294f, .850980f, .866667f, .882353f, .898039f, .913725f, .929412f, .945098f, .960784f, .976471f, .992157f, 1e+37f
+    };
+
+    // single-color match tables: for each target 0..255, the (hi,lo) 565 pair whose selector-2 color
+    // (2*hi+lo)/3 best matches it, in ideal-interpolation mode. Generated once.
+    static readonly byte[] Match5Hi = new byte[256], Match5Lo = new byte[256];
+    static readonly byte[] Match6Hi = new byte[256], Match6Lo = new byte[256];
+
+    static Bc1Block()
+    {
+        PrepareSingleColorTable(Match5Hi, Match5Lo, 32);
+        PrepareSingleColorTable(Match6Hi, Match6Lo, 64);
+    }
+
+    static ReadOnlySpan<byte> SSels => new byte[]
+    {
+        3, 2, 1, 0
+    };
+
     // ---- 5/6-bit expand + 8-bit->5/6-bit quantize ----
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static int Scale5To8(int v) => v << 3 | v >> 2;
@@ -55,34 +88,6 @@ static partial class Bc1Block
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static int Clamp6(int v) => (uint)v > 63u ? ~v >> 31 & 63 : v;
-
-    // 9*(w*w), 9*((1-w)*w), 9*((1-w)*(1-w)) for w in {0,1/3,2/3,1}, packed (z00<<16)|(z10<<8)|z11.
-    static readonly uint[] WeightVals4 =
-    {
-        0x000009u, 0x010204u, 0x040201u, 0x090000u
-    };
-
-    static readonly float[] Midpoint5 =
-    {
-        .015686f, .047059f, .078431f, .111765f, .145098f, .176471f, .207843f, .241176f, .274510f, .305882f, .337255f, .370588f, .403922f, .435294f, .466667f, .5f, .533333f, .564706f, .596078f, .629412f, .662745f, .694118f, .725490f, .758824f, .792157f, .823529f, .854902f, .888235f, .921569f, .952941f, .984314f, 1e+37f
-    };
-
-    static readonly float[] Midpoint6 =
-    {
-        .007843f, .023529f, .039216f, .054902f, .070588f, .086275f, .101961f, .117647f, .133333f, .149020f, .164706f, .180392f, .196078f, .211765f, .227451f, .245098f, .262745f, .278431f, .294118f, .309804f, .325490f, .341176f, .356863f, .372549f, .388235f, .403922f, .419608f, .435294f, .450980f, .466667f, .482353f, .500000f, .517647f, .533333f,
-        .549020f, .564706f, .580392f, .596078f, .611765f, .627451f, .643137f, .658824f, .674510f, .690196f, .705882f, .721569f, .737255f, .754902f, .772549f, .788235f, .803922f, .819608f, .835294f, .850980f, .866667f, .882353f, .898039f, .913725f, .929412f, .945098f, .960784f, .976471f, .992157f, 1e+37f
-    };
-
-    // single-color match tables: for each target 0..255, the (hi,lo) 565 pair whose selector-2 color
-    // (2*hi+lo)/3 best matches it, in ideal-interpolation mode. Generated once.
-    static readonly byte[] Match5Hi = new byte[256], Match5Lo = new byte[256];
-    static readonly byte[] Match6Hi = new byte[256], Match6Lo = new byte[256];
-
-    static Bc1Block()
-    {
-        PrepareSingleColorTable(Match5Hi, Match5Lo, 32);
-        PrepareSingleColorTable(Match6Hi, Match6Lo, 64);
-    }
 
     static void PrepareSingleColorTable(byte[] hiT, byte[] loT, int size)
     {
@@ -132,11 +137,6 @@ static partial class Bc1Block
         bg[2] = (bg[3] * 2 + bg[0]) / 3;
         bb[2] = (bb[3] * 2 + bb[0]) / 3;
     }
-
-    static ReadOnlySpan<byte> SSels => new byte[]
-    {
-        3, 2, 1, 0
-    };
 
     // ---- selector search: dispatch to the 128-bit tier when available, else scalar ----
     // Both tiers are bit-identical: the kernel is pure integer and the V128 path works in groups of

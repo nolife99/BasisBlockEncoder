@@ -10,8 +10,6 @@ namespace Bcn.Hdr;
 
 using System;
 using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 static partial class Bc6hEncoder
 {
@@ -32,14 +30,6 @@ static partial class Bc6hEncoder
     // it stays scalar.
     static bool Candidates3Vectorizable => 8 % Vector<float>.Count == 0;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static Vector<T> LoadVec<T>(ref T baseRef, nuint offset) where T : struct
-        => new(MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref baseRef, (nint)offset), Vector<T>.Count));
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static void StoreVec<T>(Vector<T> value, ref T baseRef, nuint offset) where T : struct
-        => value.CopyTo(MemoryMarshal.CreateSpan(ref Unsafe.Add(ref baseRef, (nint)offset), Vector<T>.Count));
-
     // half-bits to positive-finite float: (h << 13) reinterpreted, scaled by 2^112
     static Vector<float> HtoFVec(Vector<int> hbits)
         => Vector.AsVectorSingle(Vector.ShiftLeft(hbits, 13)) * new Vector<float>(HtoFK);
@@ -52,9 +42,9 @@ static partial class Bc6hEncoder
         int maxR,
         int maxG,
         int maxB,
-        Span<float> cr,
-        Span<float> cg,
-        Span<float> cb)
+        scoped Span<float> cr,
+        scoped Span<float> cg,
+        scoped Span<float> cb)
     {
         var W = Vector<float>.Count;
         var v64 = new Vector<int>(64);
@@ -65,32 +55,26 @@ static partial class Bc6hEncoder
         var maxGv = new Vector<int>(maxG);
         var minBv = new Vector<int>(minB);
         var maxBv = new Vector<int>(maxB);
-        ref var w4 = ref Weight4I[0];
-        ref var crr = ref MemoryMarshal.GetReference(cr);
-        ref var cgr = ref MemoryMarshal.GetReference(cg);
-        ref var cbr = ref MemoryMarshal.GetReference(cb);
-        for (nuint b = 0; b < 16; b += (nuint)W)
+        var w4 = Weight4I.AsSpan();
+        for (var b = 0; b < 16; b += W)
         {
-            var w = LoadVec(ref w4, b);
+            var w = new Vector<int>(w4.Slice(b));
             var w64 = v64 - w;
-            StoreVec(HtoFVec(Vector.ShiftRightArithmetic(minRv * w64 + maxRv * w + v32, 6)), ref crr, b);
-            StoreVec(HtoFVec(Vector.ShiftRightArithmetic(minGv * w64 + maxGv * w + v32, 6)), ref cgr, b);
-            StoreVec(HtoFVec(Vector.ShiftRightArithmetic(minBv * w64 + maxBv * w + v32, 6)), ref cbr, b);
+            HtoFVec(Vector.ShiftRightArithmetic(minRv * w64 + maxRv * w + v32, 6)).CopyTo(cr.Slice(b));
+            HtoFVec(Vector.ShiftRightArithmetic(minGv * w64 + maxGv * w + v32, 6)).CopyTo(cg.Slice(b));
+            HtoFVec(Vector.ShiftRightArithmetic(minBv * w64 + maxBv * w + v32, 6)).CopyTo(cb.Slice(b));
         }
     }
 
     // 16 candidate colors for two subsets (8 each). cr/cg/cb are indexed [s*8+j].
     // The caller invokes this only when 8 % Vector<float>.Count == 0 (widths 4 and 8); at width 16 the
     // two-subset path stays scalar, because 8 candidates underfill a 512-bit vector.
-    static void ComputeCandidates3Simd(ReadOnlySpan<int> sMin, ReadOnlySpan<int> sMax, Span<float> cr, Span<float> cg, Span<float> cb)
+    static void ComputeCandidates3Simd(scoped ReadOnlySpan<int> sMin, scoped ReadOnlySpan<int> sMax, scoped Span<float> cr, scoped Span<float> cg, scoped Span<float> cb)
     {
         var W = Vector<float>.Count;
         var v64 = new Vector<int>(64);
         var v32 = new Vector<int>(32);
-        ref var w3 = ref Weight3I[0];
-        ref var crr = ref MemoryMarshal.GetReference(cr);
-        ref var cgr = ref MemoryMarshal.GetReference(cg);
-        ref var cbr = ref MemoryMarshal.GetReference(cb);
+        var w3 = Weight3I.AsSpan();
         for (var s = 0; s < 2; s++)
         {
             var minR = new Vector<int>(sMin[0 * 2 + s]);
@@ -99,14 +83,14 @@ static partial class Bc6hEncoder
             var maxG = new Vector<int>(sMax[1 * 2 + s]);
             var minB = new Vector<int>(sMin[2 * 2 + s]);
             var maxB = new Vector<int>(sMax[2 * 2 + s]);
-            for (nuint j = 0; j < 8; j += (nuint)W)
+            for (var j = 0; j < 8; j += W)
             {
-                var o = (nuint)(s * 8) + j;
-                var w = LoadVec(ref w3, j);
+                var o = s * 8 + j;
+                var w = new Vector<int>(w3.Slice(j));
                 var w64 = v64 - w;
-                StoreVec(HtoFVec(Vector.ShiftRightArithmetic(minR * w64 + maxR * w + v32, 6)), ref crr, o);
-                StoreVec(HtoFVec(Vector.ShiftRightArithmetic(minG * w64 + maxG * w + v32, 6)), ref cgr, o);
-                StoreVec(HtoFVec(Vector.ShiftRightArithmetic(minB * w64 + maxB * w + v32, 6)), ref cbr, o);
+                HtoFVec(Vector.ShiftRightArithmetic(minR * w64 + maxR * w + v32, 6)).CopyTo(cr.Slice(o));
+                HtoFVec(Vector.ShiftRightArithmetic(minG * w64 + maxG * w + v32, 6)).CopyTo(cg.Slice(o));
+                HtoFVec(Vector.ShiftRightArithmetic(minB * w64 + maxB * w + v32, 6)).CopyTo(cb.Slice(o));
             }
         }
     }
@@ -116,26 +100,22 @@ static partial class Bc6hEncoder
     // no gather is needed. The tie-break is strict-less with candidates considered 0..15 in order, matching
     // scalar; the error is summed in scalar order so it is bit-exact.
     static double BrutePathSimd(
-        ReadOnlySpan<float> cr,
-        ReadOnlySpan<float> cg,
-        ReadOnlySpan<float> cb,
-        ReadOnlySpan<float> qr16,
-        ReadOnlySpan<float> qg16,
-        ReadOnlySpan<float> qb16,
-        ReadOnlySpan<float> scales,
-        Span<byte> weights)
+        scoped ReadOnlySpan<float> cr,
+        scoped ReadOnlySpan<float> cg,
+        scoped ReadOnlySpan<float> cb,
+        scoped ReadOnlySpan<float> qr16,
+        scoped ReadOnlySpan<float> qg16,
+        scoped ReadOnlySpan<float> qb16,
+        scoped ReadOnlySpan<float> scales,
+        scoped Span<byte> weights)
     {
         var W = Vector<float>.Count;
         Span<float> errs = stackalloc float[16];
-        ref var qrr = ref MemoryMarshal.GetReference(qr16);
-        ref var qgr = ref MemoryMarshal.GetReference(qg16);
-        ref var qbr = ref MemoryMarshal.GetReference(qb16);
-        ref var errr = ref MemoryMarshal.GetReference(errs);
-        for (nuint bse = 0; bse < 16; bse += (nuint)W)
+        for (var bse = 0; bse < 16; bse += W)
         {
-            var qr = LoadVec(ref qrr, bse);
-            var qg = LoadVec(ref qgr, bse);
-            var qb = LoadVec(ref qbr, bse);
+            var qr = new Vector<float>(qr16.Slice(bse));
+            var qg = new Vector<float>(qg16.Slice(bse));
+            var qb = new Vector<float>(qb16.Slice(bse));
             var d0r = new Vector<float>(cr[0]) - qr;
             var d0g = new Vector<float>(cg[0]) - qg;
             var d0b = new Vector<float>(cb[0]) - qb;
@@ -152,8 +132,8 @@ static partial class Bc6hEncoder
                 bestIdx = Vector.ConditionalSelect(Vector.AsVectorInt32(m), new(j), bestIdx);
             }
 
-            StoreVec(bestE, ref errr, bse);
-            for (var k = 0; k < W; k++) weights[(int)bse + k] = (byte)bestIdx[k];
+            bestE.CopyTo(errs.Slice(bse));
+            for (var k = 0; k < W; k++) weights[bse + k] = (byte)bestIdx[k];
         }
 
         double total = 0;
@@ -164,32 +144,27 @@ static partial class Bc6hEncoder
     // Two-subset 3-bit weight assignment, lane-parallel over texels. Each candidate color is blended per lane
     // by the texel's subset bit (the mask from patBits), since lanes can straddle both subsets
     static double AssignWeights3Simd(
-        Span<byte> weights,
+        scoped Span<byte> weights,
         uint patBits,
-        ReadOnlySpan<float> cr,
-        ReadOnlySpan<float> cg,
-        ReadOnlySpan<float> cb,
-        ReadOnlySpan<float> fr,
-        ReadOnlySpan<float> fg,
-        ReadOnlySpan<float> fb,
-        ReadOnlySpan<float> ps,
+        scoped ReadOnlySpan<float> cr,
+        scoped ReadOnlySpan<float> cg,
+        scoped ReadOnlySpan<float> cb,
+        scoped ReadOnlySpan<float> fr,
+        scoped ReadOnlySpan<float> fg,
+        scoped ReadOnlySpan<float> fb,
+        scoped ReadOnlySpan<float> ps,
         bool computeError)
     {
         var W = Vector<float>.Count;
         Span<int> subMask = stackalloc int[16];
         for (var i = 0; i < 16; i++) subMask[i] = -(int)(patBits >> i & 1); // -1 (all-ones) for subset 1, else 0
         Span<float> errs = stackalloc float[16];
-        ref var frr = ref MemoryMarshal.GetReference(fr);
-        ref var fgr = ref MemoryMarshal.GetReference(fg);
-        ref var fbr = ref MemoryMarshal.GetReference(fb);
-        ref var smr = ref subMask[0];
-        ref var errr = ref MemoryMarshal.GetReference(errs);
-        for (nuint bse = 0; bse < 16; bse += (nuint)W)
+        for (var bse = 0; bse < 16; bse += W)
         {
-            var qr = LoadVec(ref frr, bse);
-            var qg = LoadVec(ref fgr, bse);
-            var qb = LoadVec(ref fbr, bse);
-            var mask = Vector.AsVectorSingle(LoadVec(ref smr, bse));
+            var qr = new Vector<float>(fr.Slice(bse));
+            var qg = new Vector<float>(fg.Slice(bse));
+            var qb = new Vector<float>(fb.Slice(bse));
+            var mask = Vector.AsVectorSingle(new Vector<int>(subMask.Slice(bse)));
             var c0r = Vector.ConditionalSelect(mask, new(cr[8]), new(cr[0])) - qr;
             var c0g = Vector.ConditionalSelect(mask, new(cg[8]), new(cg[0])) - qg;
             var c0b = Vector.ConditionalSelect(mask, new(cb[8]), new(cb[0])) - qb;
@@ -206,8 +181,8 @@ static partial class Bc6hEncoder
                 bestIdx = Vector.ConditionalSelect(Vector.AsVectorInt32(m), new(j), bestIdx);
             }
 
-            StoreVec(bestE, ref errr, bse);
-            for (var k = 0; k < W; k++) weights[(int)bse + k] = (byte)bestIdx[k];
+            bestE.CopyTo(errs.Slice(bse));
+            for (var k = 0; k < W; k++) weights[bse + k] = (byte)bestIdx[k];
         }
 
         double total = 0;
@@ -221,9 +196,9 @@ static partial class Bc6hEncoder
     // Covariance about the integer mean via lane-parallel float FMA. Not bit-identical to scalar, because the
     // horizontal reduction (Vector.Sum) reorders the sum.
     static void CovarianceSimd(
-        ReadOnlySpan<int> ir,
-        ReadOnlySpan<int> ig,
-        ReadOnlySpan<int> ib,
+        scoped ReadOnlySpan<int> ir,
+        scoped ReadOnlySpan<int> ig,
+        scoped ReadOnlySpan<int> ib,
         int meanR,
         int meanG,
         int meanB,
@@ -236,9 +211,6 @@ static partial class Bc6hEncoder
         out float blockMaxVar)
     {
         var W = Vector<float>.Count;
-        ref var irr = ref MemoryMarshal.GetReference(ir);
-        ref var igr = ref MemoryMarshal.GetReference(ig);
-        ref var ibr = ref MemoryMarshal.GetReference(ib);
         var mR = new Vector<int>(meanR);
         var mG = new Vector<int>(meanG);
         var mB = new Vector<int>(meanB);
@@ -248,11 +220,11 @@ static partial class Bc6hEncoder
         var c3 = c0;
         var c4 = c0;
         var c5 = c0;
-        for (nuint b = 0; b < 16; b += (nuint)W)
+        for (var b = 0; b < 16; b += W)
         {
-            var r = Vector.ConvertToSingle(LoadVec(ref irr, b) - mR);
-            var g = Vector.ConvertToSingle(LoadVec(ref igr, b) - mG);
-            var bl = Vector.ConvertToSingle(LoadVec(ref ibr, b) - mB);
+            var r = Vector.ConvertToSingle(new Vector<int>(ir.Slice(b)) - mR);
+            var g = Vector.ConvertToSingle(new Vector<int>(ig.Slice(b)) - mG);
+            var bl = Vector.ConvertToSingle(new Vector<int>(ib.Slice(b)) - mB);
             c0 += r * r;
             c1 += r * g;
             c2 += r * bl;
@@ -273,28 +245,24 @@ static partial class Bc6hEncoder
     // Projection onto the principal axis: the dot products only (lane-parallel FMA), which are bit-identical;
     // the argmin/argmax over the dots stays scalar to keep the extreme-index tie-break exact.
     static void ProjectionSimd(
-        ReadOnlySpan<int> ir,
-        ReadOnlySpan<int> ig,
-        ReadOnlySpan<int> ib,
+        scoped ReadOnlySpan<int> ir,
+        scoped ReadOnlySpan<int> ig,
+        scoped ReadOnlySpan<int> ib,
         float axisR,
         float axisG,
         float axisB,
-        Span<float> dots)
+        scoped Span<float> dots)
     {
         var W = Vector<float>.Count;
-        ref var irr = ref MemoryMarshal.GetReference(ir);
-        ref var igr = ref MemoryMarshal.GetReference(ig);
-        ref var ibr = ref MemoryMarshal.GetReference(ib);
-        ref var dr = ref MemoryMarshal.GetReference(dots);
         var aR = new Vector<float>(axisR);
         var aG = new Vector<float>(axisG);
         var aB = new Vector<float>(axisB);
-        for (nuint b = 0; b < 16; b += (nuint)W)
+        for (var b = 0; b < 16; b += W)
         {
-            var r = Vector.ConvertToSingle(LoadVec(ref irr, b));
-            var g = Vector.ConvertToSingle(LoadVec(ref igr, b));
-            var bl = Vector.ConvertToSingle(LoadVec(ref ibr, b));
-            StoreVec(r * aR + g * aG + bl * aB, ref dr, b);
+            var r = Vector.ConvertToSingle(new Vector<int>(ir.Slice(b)));
+            var g = Vector.ConvertToSingle(new Vector<int>(ig.Slice(b)));
+            var bl = Vector.ConvertToSingle(new Vector<int>(ib.Slice(b)));
+            (r * aR + g * aG + bl * aB).CopyTo(dots.Slice(b));
         }
     }
 }

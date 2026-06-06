@@ -14,8 +14,8 @@
 namespace Bcn.Ldr;
 
 using System;
-using System.Runtime.CompilerServices;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 static partial class Bc1Block
@@ -68,7 +68,7 @@ static partial class Bc1Block
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static Vector<int> Load8R(scoped ReadOnlySpan<uint> tU, int i, Vector<uint> mask8, out Vector<int> g, out Vector<int> b)
     {
-        Split8(new Vector<uint>(tU.Slice(i * Vector<int>.Count)), mask8, out var r, out g, out b);
+        Split8(new(tU.Slice(i * Vector<int>.Count)), mask8, out var r, out g, out b);
         return r;
     }
 
@@ -78,7 +78,7 @@ static partial class Bc1Block
     {
         Span<float> tmp = stackalloc float[Vector<int>.Count];
         for (var l = 0; l < Vector<int>.Count; l++) tmp[l] = tab[idx[l]];
-        return new Vector<float>(tmp);
+        return new(tmp);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -86,25 +86,17 @@ static partial class Bc1Block
     {
         Span<int> tmp = stackalloc int[Vector<int>.Count];
         for (var l = 0; l < Vector<int>.Count; l++) tmp[l] = tab[idx[l]];
-        return new Vector<int>(tmp);
+        return new(tmp);
     }
 
     // Transpose Vector<int>.Count block-contiguous blocks (px8[b*16 + i]) into pixel-major packed uints (tU[i*n + b]).
     static void Transpose8(scoped ReadOnlySpan<ColorRgba> px8, scoped Span<uint> tU)
     {
-        int n = Vector<int>.Count;
+        var n = Vector<int>.Count;
         var srcU = MemoryMarshal.Cast<ColorRgba, uint>(px8);
         for (var b = 0; b < n; b++)
         for (var i = 0; i < 16; i++)
             tU[i * n + b] = srcU[b * 16 + i];
-    }
-
-    // per-lane block statistics from the setup pass.
-    struct Blk8
-    {
-        public Vector<int> minR, minG, minB, maxR, maxG, maxB;
-        public Vector<int> totR, totG, totB, avgR, avgG, avgB;
-        public Vector<int> gray, solid, r0, g0, b0;
     }
 
     static Blk8 Setup8(scoped ReadOnlySpan<uint> tU, Vector<uint> mask8)
@@ -121,7 +113,7 @@ static partial class Bc1Block
         s.totG = s.g0;
         s.totB = s.b0;
         s.gray = Vector.Equals(s.r0, s.g0) & Vector.Equals(s.g0, s.b0);
-        s.solid = new Vector<int>(-1);
+        s.solid = new(-1);
         for (var i = 1; i < 16; i++)
         {
             var R = Load8R(tU, i, mask8, out var G, out var B);
@@ -190,17 +182,17 @@ static partial class Bc1Block
         }
 
         var k = Vector.Max(Vector.Max(Vector.Abs(xr), Vector.Abs(xg)), Vector.Abs(xb));
-        var kMask = Vector.AsVectorInt32(Vector.GreaterThanOrEqual(k, new Vector<float>(2.0f)));
+        var kMask = Vector.AsVectorInt32(Vector.GreaterThanOrEqual(k, new(2.0f)));
         var m = new Vector<float>(2048.0f) / k;
-        var saxisR = Vector.ConditionalSelect(kMask, Vector.ConvertToInt32(xr * m), new Vector<int>(306));
-        var saxisG = Vector.ConditionalSelect(kMask, Vector.ConvertToInt32(xg * m), new Vector<int>(601));
-        var saxisB = Vector.ConditionalSelect(kMask, Vector.ConvertToInt32(xb * m), new Vector<int>(117));
+        var saxisR = Vector.ConditionalSelect(kMask, Vector.ConvertToInt32(xr * m), new(306));
+        var saxisG = Vector.ConditionalSelect(kMask, Vector.ConvertToInt32(xg * m), new(601));
+        var saxisB = Vector.ConditionalSelect(kMask, Vector.ConvertToInt32(xb * m), new(117));
         saxisR *= new Vector<int>(16);
         saxisG *= new Vector<int>(16);
         saxisB *= new Vector<int>(16);
 
         var notF = new Vector<int>(~0xF);
-        Vector<int> vLow = new Vector<int>(int.MaxValue), vHigh = new Vector<int>(int.MinValue);
+        Vector<int> vLow = new(int.MaxValue), vHigh = new(int.MinValue);
         Vector<int> loR = s.r0, loG = s.g0, loB = s.b0, hiR = s.r0, hiG = s.g0, hiB = s.b0;
         for (var i = 0; i < 16; i++)
         {
@@ -221,7 +213,7 @@ static partial class Bc1Block
         Vector<int> pcaLr = To5x8(loR), pcaLg = To6x8(loG), pcaLb = To5x8(loB);
         Vector<int> pcaHr = To5x8(hiR), pcaHg = To6x8(hiG), pcaHb = To5x8(hiB);
 
-        var subMask = Vector.LessThan(s.maxR - s.minR, new Vector<int>(2));
+        var subMask = Vector.LessThan(s.maxR - s.minR, new(2));
         Vector<int> sglR = To5x8(s.r0), sglG = To6x8(s.r0);
         Vector<int> mmLoR = To5x8(s.minR), mmLoG = To6x8(s.minR), mmHiR = To5x8(s.maxR), mmHiG = To6x8(s.maxR);
         Vector<int> gLr = Vector.ConditionalSelect(subMask, sglR, mmLoR), gLg = Vector.ConditionalSelect(subMask, sglG, mmLoG);
@@ -274,9 +266,9 @@ static partial class Bc1Block
     static Vector<int> Sel4(Vector<int> sel, Vector<int> v0, Vector<int> v1, Vector<int> v2, Vector<int> v3)
         => Vector.ConditionalSelect(Vector.Equals(sel, Vector<int>.Zero),
             v0,
-            Vector.ConditionalSelect(Vector.Equals(sel, new Vector<int>(1)),
+            Vector.ConditionalSelect(Vector.Equals(sel, new(1)),
                 v1,
-                Vector.ConditionalSelect(Vector.Equals(sel, new Vector<int>(2)), v2, v3)));
+                Vector.ConditionalSelect(Vector.Equals(sel, new(2)), v2, v3)));
 
     // find_sels (lane = block). No early-out: a committed trial never bails, so the full-sum error matches
     // scalar; a rejected trial's selectors are discarded by the caller regardless. Writes sels[i] per pixel.
@@ -355,7 +347,7 @@ static partial class Bc1Block
         out Vector<int> okMask)
     {
         Vector<int> uqR = Vector<int>.Zero, uqG = uqR, uqB = uqR, wacc = uqR;
-        Vector<int> w0 = new Vector<int>(0x000009), w1 = new Vector<int>(0x010204), w2 = new Vector<int>(0x040201), w3 = new Vector<int>(0x090000);
+        Vector<int> w0 = new(0x000009), w1 = new(0x010204), w2 = new(0x040201), w3 = new(0x090000);
         for (var i = 0; i < 16; i++)
         {
             var R = Load8R(tU, i, mask8, out var G, out var B);
@@ -372,7 +364,7 @@ static partial class Bc1Block
         var z10 = Vector.ConvertToSingle(Vector.ShiftRightArithmetic(wacc, 8) & ff);
         var z11 = Vector.ConvertToSingle(wacc & ff);
         var det = z00 * z11 - z10 * z10;
-        okMask = Vector.AsVectorInt32(Vector.GreaterThanOrEqual(Vector.Abs(det), new Vector<float>(1e-8f)));
+        okMask = Vector.AsVectorInt32(Vector.GreaterThanOrEqual(Vector.Abs(det), new(1e-8f)));
         var idet = new Vector<float>(3.0f / 255.0f) / det;
         Vector<float> iz00 = z11 * idet, iz01 = Neg8(z10) * idet, iz10 = iz01, iz11 = z00 * idet;
         Vector<float> fuqR = Vector.ConvertToSingle(uqR), fq10R = Vector.ConvertToSingle(q10R);
@@ -390,7 +382,7 @@ static partial class Bc1Block
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static Vector<int> Round5x8(Vector<float> a)
     {
-        var lvl = Vector.Max(Vector.Min(Vector.ConvertToInt32(a * new Vector<float>(31.0f)), new Vector<int>(31)), Vector<int>.Zero);
+        var lvl = Vector.Max(Vector.Min(Vector.ConvertToInt32(a * new Vector<float>(31.0f)), new(31)), Vector<int>.Zero);
         var mid = GatherF(Midpoint5, lvl);
         return lvl - Vector.AsVectorInt32(Vector.GreaterThan(a, mid)) & new Vector<int>(31);
     }
@@ -398,7 +390,7 @@ static partial class Bc1Block
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static Vector<int> Round6x8(Vector<float> a)
     {
-        var lvl = Vector.Max(Vector.Min(Vector.ConvertToInt32(a * new Vector<float>(63.0f)), new Vector<int>(63)), Vector<int>.Zero);
+        var lvl = Vector.Max(Vector.Min(Vector.ConvertToInt32(a * new Vector<float>(63.0f)), new(63)), Vector<int>.Zero);
         var mid = GatherF(Midpoint6, lvl);
         return lvl - Vector.AsVectorInt32(Vector.GreaterThan(a, mid)) & new Vector<int>(63);
     }
@@ -416,7 +408,7 @@ static partial class Bc1Block
         ref Vector<int> hb,
         scoped Span<Vector<int>> sels)
     {
-        Span<Vector<int>> trialSels = MemoryMarshal.Cast<byte, Vector<int>>(stackalloc byte[16 * Vector<byte>.Count]);
+        var trialSels = MemoryMarshal.Cast<byte, Vector<int>>(stackalloc byte[16 * Vector<byte>.Count]);
         var err = FindSels8(tU, mask8, true, lr, lg, lb, hr, hg, hb, sels);
         for (var pass = 0; pass < 2; pass++)
         {
@@ -470,20 +462,20 @@ static partial class Bc1Block
     {
         var lc = lr * new Vector<int>(2048) | lg * new Vector<int>(32) | lb;
         var hc = hr * new Vector<int>(2048) | hg * new Vector<int>(32) | hb;
-        Vector<int> zero = Vector<int>.Zero, one = new Vector<int>(1), rep = new Vector<int>(0x01010101);
+        Vector<int> zero = Vector<int>.Zero, one = new(1), rep = new(0x01010101);
 
         // degenerate (lc == hc): make color0 > color1, force the all-same selector word
         var pos = Vector.GreaterThan(hc, zero);
         var degC0 = Vector.ConditionalSelect(pos, lc, one);
         var degC1 = Vector.ConditionalSelect(pos, hc - one, zero);
-        var degW1 = Vector.ConditionalSelect(pos, zero, new Vector<int>(0x55)) * rep;
+        var degW1 = Vector.ConditionalSelect(pos, zero, new(0x55)) * rep;
 
         // non-degenerate: swap so color0 > color1, invert selectors when swapped
         var lt = Vector.LessThan(lc, hc);
         var ndC0 = Vector.ConditionalSelect(lt, hc, lc);
         var ndC1 = Vector.ConditionalSelect(lt, lc, hc);
-        var invert = Vector.ConditionalSelect(lt, new Vector<int>(0x55), zero) * rep;
-        Vector<int> t0v = zero, t2v = new Vector<int>(2), t3v = new Vector<int>(3);
+        var invert = Vector.ConditionalSelect(lt, new(0x55), zero) * rep;
+        Vector<int> t0v = zero, t2v = new(2), t3v = new(3);
         var packed = zero;
         for (var i = 0; i < 16; i++)
             packed |= Sel4(sels[i], t0v, t2v, t3v, one) * new Vector<int>(1 << 2 * i); // trans = {0,2,3,1}
@@ -504,7 +496,7 @@ static partial class Bc1Block
         out Vector<int> w0,
         out Vector<int> w1)
     {
-        Vector<int> p2048 = new Vector<int>(2048), p32 = new Vector<int>(32), zero = Vector<int>.Zero, one = new Vector<int>(1), rep = new Vector<int>(0x01010101);
+        Vector<int> p2048 = new(2048), p32 = new(32), zero = Vector<int>.Zero, one = new(1), rep = new(0x01010101);
         var max = GatherB(Match5Hi, r0) * p2048 | GatherB(Match6Hi, g0) * p32 | GatherB(Match5Hi, b0);
         var min = GatherB(Match5Lo, r0) * p2048 | GatherB(Match6Lo, g0) * p32 | GatherB(Match5Lo, b0);
         var mask = new Vector<int>(0xAA);
@@ -513,7 +505,7 @@ static partial class Bc1Block
         var pos = Vector.GreaterThan(min, zero);
         var eqMin = Vector.ConditionalSelect(pos, min - one, zero);
         var eqMax = Vector.ConditionalSelect(pos, max, one);
-        var eqMask = Vector.ConditionalSelect(pos, zero, new Vector<int>(0x55));
+        var eqMask = Vector.ConditionalSelect(pos, zero, new(0x55));
         min = Vector.ConditionalSelect(eq, eqMin, min);
         max = Vector.ConditionalSelect(eq, eqMax, max);
         mask = Vector.ConditionalSelect(eq, eqMask, mask);
@@ -565,7 +557,7 @@ static partial class Bc1Block
             & Vector.Equals(hr, thr) & Vector.Equals(hg, thg) & Vector.Equals(hb, thb);
 
         var changed = allEq ^ new Vector<int>(-1);
-        Span<Vector<int>> sels2 = MemoryMarshal.Cast<byte, Vector<int>>(stackalloc byte[16 * Vector<byte>.Count]);
+        var sels2 = MemoryMarshal.Cast<byte, Vector<int>>(stackalloc byte[16 * Vector<byte>.Count]);
         FindSels8(tU, mask8, false, tlr, tlg, tlb, thr, thg, thb, sels2);
         lr = Vector.ConditionalSelect(changed, tlr, lr);
         lg = Vector.ConditionalSelect(changed, tlg, lg);
@@ -588,7 +580,7 @@ static partial class Bc1Block
         var mask8 = new Vector<uint>(0xFFu);
         var s = Setup8(tU, mask8);
 
-        Span<Vector<int>> sels = MemoryMarshal.Cast<byte, Vector<int>>(stackalloc byte[16 * Vector<byte>.Count]);
+        var sels = MemoryMarshal.Cast<byte, Vector<int>>(stackalloc byte[16 * Vector<byte>.Count]);
         Vector<int> lr, lg, lb, hr, hg, hb;
         if (quality == Bc1Quality.Fast)
             RunFast8(tU, mask8, in s, out lr, out lg, out lb, out hr, out hg, out hb, sels);
@@ -641,5 +633,13 @@ static partial class Bc1Block
         var mask8 = new Vector<uint>(0xFFu);
         var s = Setup8(tU, mask8);
         PickInitialPcaCore8(tU, mask8, in s, powerIters, out lr, out lg, out lb, out hr, out hg, out hb);
+    }
+
+    // per-lane block statistics from the setup pass.
+    struct Blk8
+    {
+        public Vector<int> minR, minG, minB, maxR, maxG, maxB;
+        public Vector<int> totR, totG, totB, avgR, avgG, avgB;
+        public Vector<int> gray, solid, r0, g0, b0;
     }
 }

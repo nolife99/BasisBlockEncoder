@@ -11,12 +11,14 @@ namespace Bcn.Hdr;
 
 using System;
 using System.Buffers.Binary;
+using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics.X86;
 
 static class Bc6hDecoder
 {
     // Decode one 16-byte BC6H block into 16 RGB half-float triples (FP16 bit patterns),
     // raster order: outRgbHalf48[texel*3 + channel]. Length must be 48.
-    internal static void DecodeBlock(ReadOnlySpan<byte> src16, Span<ushort> outRgbHalf48)
+    internal static void DecodeBlock(scoped ReadOnlySpan<byte> src16, scoped Span<ushort> outRgbHalf48)
     {
         var l = BinaryPrimitives.ReadUInt32LittleEndian(src16)
             | (ulong)BinaryPrimitives.ReadUInt32LittleEndian(src16.Slice(4)) << 32;
@@ -88,12 +90,14 @@ static class Bc6hDecoder
         var wtab = numSubsets == 2 ? Bc6hTables.Weight3 : Bc6hTables.Weight4;
         var patBase = (int)partition * 16;
         Span<int> w = stackalloc int[16];
+        var patterns = Bc6hTables.Patterns.AsSpan();
+
         for (var i = 0; i < 16; i++)
         {
             var nb = weightBits;
             if (numSubsets == 2)
             {
-                if ((Bc6hTables.Patterns[patBase + i] & 0x80) != 0) nb--;
+                if ((patterns[patBase + i] & 0x80) != 0) nb--;
             }
             else if (i == 0) nb--;
 
@@ -104,7 +108,7 @@ static class Bc6hDecoder
         // Texels: pick subset, interpolate endpoints in blog16, convert to FP16 bits.
         for (var i = 0; i < 16; i++)
         {
-            var subset = numSubsets == 2 ? Bc6hTables.Patterns[patBase + i] & 1 : 0;
+            var subset = numSubsets == 2 ? patterns[patBase + i] & 1 : 0;
             int epLow = subset * 2, epHigh = subset * 2 + 1;
             int wq = wtab[w[i]];
             for (var c = 0; c < 3; c++)
@@ -115,36 +119,67 @@ static class Bc6hDecoder
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static uint MaskLowBits(uint value, int bits)
+    {
+        if (Bmi2.IsSupported)
+            return Bmi2.ZeroHighBits(value, (uint)bits);
+
+        return value & (uint)((1UL << bits) - 1UL);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static uint ReadBits(ulong l, ulong h, int pos, int n)
     {
-        if (pos + n <= 64) return (uint)(l >> pos & (1UL << n) - 1UL);
-        if (pos >= 64) return (uint)(h >> pos - 64 & (1UL << n) - 1UL);
+        ulong value;
 
-        var lowN = 64 - pos;
-        var low = l >> pos & (1UL << lowN) - 1UL;
-        var hi = h & (1UL << n - lowN) - 1UL;
-        return (uint)(low | hi << lowN);
+        if ((uint)pos < 64u)
+        {
+            value = l >> pos;
+            if (pos + n > 64)
+                value |= h << 64 - pos;
+        }
+        else
+        {
+            value = h >> pos - 64;
+        }
+
+        return MaskLowBits((uint)value, n);
     }
 
-    static uint ReverseBits(uint v, int n)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static uint ReverseBits(uint value, int n)
     {
-        uint r = 0;
-        for (var k = 0; k < n; k++) r |= (v >> k & 1u) << n - 1 - k;
-        return r;
+        value = value >> 1 & 0x5555_5555u |
+            (value & 0x5555_5555u) << 1;
+
+        value = value >> 2 & 0x3333_3333u |
+            (value & 0x3333_3333u) << 2;
+
+        value = value >> 4 & 0x0F0F_0F0Fu |
+            (value & 0x0F0F_0F0Fu) << 4;
+
+        value = BinaryPrimitives.ReverseEndianness(value);
+        return (uint)((ulong)value >> 32 - n);
     }
 
-    static int SignExtend(uint v, int bits)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static int SignExtend(uint value, int bits)
     {
-        var s = 1u << bits - 1;
-        return (int)((v ^ s) - s);
+        var shift = 32 - bits;
+        return (int)(value << shift) >> shift;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static int Unquantize(uint comp, int bits)
     {
-        if (bits >= 15) return (int)comp;
-        if (comp == 0) return 0;
-        if (comp == (1u << bits) - 1u) return 0xFFFF;
+        if (bits >= 15)
+            return (int)comp;
 
-        return (int)((comp << 16) + 0x8000u >> bits);
+        var max = (1u << bits) - 1u;
+        if (unchecked(comp - 1u) < max - 1u)
+            return (int)((comp << 16) + 0x8000u >> bits);
+
+        return comp == 0 ? 0 : 0xFFFF;
     }
 }

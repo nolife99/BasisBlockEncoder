@@ -739,7 +739,7 @@ static partial class Bc7Block
         var acc = Vector256<int>.Zero;
         for (var o = 0; o < 16; o += 8)
         {
-            var p = Vector256.Create(pru);
+            var p = Vector256.Create(pru.Slice(o));
             var R = (p & mask).AsInt32();
             var G = (Vector256.ShiftRightLogical(p, 8) & mask).AsInt32();
             var B = (Vector256.ShiftRightLogical(p, 16) & mask).AsInt32();
@@ -820,7 +820,7 @@ static partial class Bc7Block
             Vector256<int> B = (Vector256.ShiftRightLogical(p, 16) & m8).AsInt32(), A = (Vector256.ShiftRightLogical(p, 24) & m8).AsInt32();
             var s0 = Avx.ConvertToVector256Int32WithTruncation(Fma.MultiplyAdd(Vector256.ConvertToSingle(R * dr0v + G * dg0v + B * db0v - so0v), f0v, halfv));
             var s1 = Avx.ConvertToVector256Int32WithTruncation(Fma.MultiplyAdd(Vector256.ConvertToSingle(R * dr1v + G * dg1v + B * db1v - so1v), f1v, halfv));
-            var m = Vector256.Equals(Vector256.Create(subsetMask >> (int)o & 0xFF) & bitsel, zero); // true => subset 0
+            var m = Vector256.Equals(Vector256.Create(subsetMask >> o & 0xFF) & bitsel, zero); // true => subset 0
             var sel = Vector256.Min(Vector256.Max(Vector256.ConditionalSelect(m, s0, s1), zero), mxv);
             sel.CopyTo(w.Slice(o));
             var wsel = Vector256.Shuffle(wtv, sel); // wt[sel], sel in 0..mx<=7

@@ -1,26 +1,26 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- The portable, SIMD-tiered BCn encoder engine, built as its own assembly (Bcn.dll). It exists as a
-       separate assembly so the unit tests and the managed-vs-native benchmark can reference the engine WITHOUT
-       colliding with the identically-named native BasisBlockEncoder.dll (two assemblies with the same identity
-       cannot load in one process). The shipped package (BasisBlockEncoder) compiles these same sources in, so
-       the engine ships merged into BasisBlockEncoder.dll — Bcn.dll is a build-time artifact and is not shipped. -->
-  <PropertyGroup>
-    <TargetFrameworks>net7.0;net8.0;net9.0;net10.0</TargetFrameworks>
-    <Nullable>enable</Nullable>
-    <LangVersion>latest</LangVersion>
-    <Optimize>true</Optimize>
-    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
-    <AssemblyName>Bcn</AssemblyName>
-    <RootNamespace>Bcn</RootNamespace>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);CS1591;CS0649;CA2014</NoWarn>
-  </PropertyGroup>
+    <!-- The portable, SIMD-tiered BCn encoder engine, built as its own assembly (Bcn.dll). It exists as a
+         separate assembly so the unit tests and the managed-vs-native benchmark can reference the engine WITHOUT
+         colliding with the identically-named native BasisBlockEncoder.dll (two assemblies with the same identity
+         cannot load in one process). The shipped package (BasisBlockEncoder) compiles these same sources in, so
+         the engine ships merged into BasisBlockEncoder.dll — Bcn.dll is a build-time artifact and is not shipped. -->
+    <PropertyGroup>
+        <TargetFrameworks>net7.0;net8.0;net9.0;net10.0</TargetFrameworks>
+        <Nullable>enable</Nullable>
+        <LangVersion>latest</LangVersion>
+        <Optimize>true</Optimize>
+        <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+        <AssemblyName>Bcn</AssemblyName>
+        <RootNamespace>Bcn</RootNamespace>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);CS1591;CS0649;CA2014</NoWarn>
+    </PropertyGroup>
 
-  <!-- The unit tests and benchmark reach the engine's internal types. -->
-  <ItemGroup>
-    <InternalsVisibleTo Include="Bcn.Ldr.Tests" />
-    <InternalsVisibleTo Include="Bcn.Bench" />
-  </ItemGroup>
+    <!-- The unit tests and benchmark reach the engine's internal types. -->
+    <ItemGroup>
+        <InternalsVisibleTo Include="Bcn.Ldr.Tests"/>
+        <InternalsVisibleTo Include="Bcn.Bench"/>
+    </ItemGroup>
 
 </Project>
