@@ -631,10 +631,10 @@ static partial class Bc7Block
 
             var bc = Sse2.UnpackLow(c64 - wcv, wcv).AsSByte();
             var bal = Sse2.UnpackLow(c64 - wav, wav).AsSByte();
-            var rR = Vector128.ShiftRightArithmetic(Ssse3.MultiplyAddAdjacent(aR, bc) + c32, 6);
-            var rG = Vector128.ShiftRightArithmetic(Ssse3.MultiplyAddAdjacent(aG, bc) + c32, 6);
-            var rB = Vector128.ShiftRightArithmetic(Ssse3.MultiplyAddAdjacent(aB, bc) + c32, 6);
-            var rA = Vector128.ShiftRightArithmetic(Ssse3.MultiplyAddAdjacent(aA, bal) + c32, 6);
+            var rR = Sse2.ShiftRightArithmetic(Ssse3.MultiplyAddAdjacent(aR, bc) + c32, 6);
+            var rG = Sse2.ShiftRightArithmetic(Ssse3.MultiplyAddAdjacent(aG, bc) + c32, 6);
+            var rB = Sse2.ShiftRightArithmetic(Ssse3.MultiplyAddAdjacent(aB, bc) + c32, 6);
+            var rA = Sse2.ShiftRightArithmetic(Ssse3.MultiplyAddAdjacent(aA, bal) + c32, 6);
             WeaveStoreX86(rR, rG, rB, rA, db, o);
         }
     }
@@ -793,7 +793,7 @@ static partial class Bc7Block
         var so0 = eLoR[0] * dr0 + eLoG[0] * dg0 + eLoB[0] * db0;
         var so1 = eLoR[1] * dr1 + eLoG[1] * dg1 + eLoB[1] * db1;
 
-        ref var pru = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<ColorRgba, uint>(px));
+        var pru = MemoryMarshal.Cast<ColorRgba, uint>(px);
         var m8 = Vector256.Create(0xFFu);
         Vector256<int> dr0v = Vector256.Create(dr0), dg0v = Vector256.Create(dg0), db0v = Vector256.Create(db0), so0v = Vector256.Create(so0);
         Vector256<int> dr1v = Vector256.Create(dr1), dg1v = Vector256.Create(dg1), db1v = Vector256.Create(db1), so1v = Vector256.Create(so1);
@@ -815,7 +815,7 @@ static partial class Bc7Block
         var acc = Vector256<int>.Zero;
         for (var o = 0; o < 16; o += 8)
         {
-            var p = Vector256.Create(pru);
+            var p = Vector256.Create(pru.Slice(o));
             Vector256<int> R = (p & m8).AsInt32(), G = (Vector256.ShiftRightLogical(p, 8) & m8).AsInt32();
             Vector256<int> B = (Vector256.ShiftRightLogical(p, 16) & m8).AsInt32(), A = (Vector256.ShiftRightLogical(p, 24) & m8).AsInt32();
             var s0 = Avx.ConvertToVector256Int32WithTruncation(Fma.MultiplyAdd(Vector256.ConvertToSingle(R * dr0v + G * dg0v + B * db0v - so0v), f0v, halfv));
@@ -1153,7 +1153,12 @@ static partial class Bc7Block
         v > 255f ? 255f : v;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static int RoundPos(float c) => (int)(c + 0.5f);
+    static int RoundPos(float c) =>
+#if NET9_0_OR_GREATER
+        float.ConvertToIntegerNative<int>(c + 0.5f);
+#else 
+        (int)(c + 0.5f);
+#endif
 
     // Single subset, RGB (all 16 pixels). Used by mode 6.
     static bool ComputeLs3D(scoped ReadOnlySpan<int> w,
